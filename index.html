@@ -872,7 +872,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     <div class="io-title">Únete a la fiesta</div>
     <div class="io-sub">Que tus amigos escaneen este QR con la cámara y entrarán a la app de la noche.</div>
     <div class="io-qr"><img id="inviteQrImg" alt="Código QR de la fiesta"></div>
-    <div class="io-url">afinesfiesta.netlify.app</div>
+    <div class="io-url">&nbsp;</div>
     <div class="io-tip">Sin descargas, sin cuentas. Funciona en cualquier móvil.</div>
     <button class="io-close" onclick="closeInviteOverlay()">Cerrar</button>
   </div>
@@ -2820,6 +2820,21 @@ async function saveMyProfile(){
 /* QR del enlace de la app para invitar a más gente */
 let qrCache = null, qrCacheDay = null;
 
+/* Detecta automáticamente la URL donde está alojada la app.
+   Así el QR siempre apunta al sitio correcto, sea GitHub Pages hoy
+   (clucasrequeni.github.io/afines-fiesta) o el dominio propio mañana
+   (afinesfiesta.com), SIN tener que tocar el código. */
+function getAppBaseURL(){
+  let base = window.location.origin + window.location.pathname;
+  base = base.replace(/index\.html$/i, '');   // quitar index.html si aparece
+  if(!base.endsWith('/')) base += '/';          // asegurar barra final
+  return base;
+}
+/* Versión bonita para mostrar al usuario (sin https:// ni barra final) */
+function getAppDisplayURL(){
+  return getAppBaseURL().replace(/^https?:\/\//,'').replace(/\/$/,'');
+}
+
 /* Genera la URL de un QR usando un servicio público gratuito.
    No necesita librería ni claves — siempre funciona si hay conexión. */
 function getQRImageURL(text){
@@ -2827,9 +2842,9 @@ function getQRImageURL(text){
 }
 
 function generateQR(){
-  // QR fijo de la app + fecha de hoy → si alguien lo escanea otro día,
+  // QR de la app + fecha de hoy → si alguien lo escanea otro día,
   // la app le muestra "te perdiste la fiesta"
-  const url = 'https://afinesfiesta.netlify.app/?d=' + TODAY;
+  const url = getAppBaseURL() + '?d=' + TODAY;
   const imgEl = document.getElementById('qrImg'); if(!imgEl) return;
   imgEl.src = getQRImageURL(url);
   imgEl.alt = 'QR de la fiesta';
@@ -2837,12 +2852,15 @@ function generateQR(){
 
 /* ════════ OVERLAY "INVITAR AMIGOS" (QR a pantalla completa) ════════ */
 function openInviteOverlay(){
-  const url = 'https://afinesfiesta.netlify.app/?d=' + TODAY;
+  const url = getAppBaseURL() + '?d=' + TODAY;
   const img = document.getElementById('inviteQrImg');
   if(img){
     img.src = getQRImageURL(url);
     img.alt = 'QR de la fiesta';
   }
+  // Mostrar la dirección actual debajo del QR
+  const urlEl = document.querySelector('#inviteOverlay .io-url');
+  if(urlEl) urlEl.textContent = getAppDisplayURL();
   document.getElementById('inviteOverlay').classList.add('on');
 }
 function closeInviteOverlay(){ document.getElementById('inviteOverlay').classList.remove('on'); }
