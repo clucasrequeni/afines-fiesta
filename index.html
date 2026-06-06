@@ -52,6 +52,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .btn[disabled]{opacity:.35;box-shadow:none;cursor:not-allowed}
 .btn.ghost{background:transparent;border:1.5px solid var(--card-line);color:var(--ink);box-shadow:none}
 .btn.ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn.danger-ghost{background:transparent;border:1.5px solid rgba(255,90,90,.5);color:#ff7a7a;box-shadow:none}
+.btn.danger-ghost:hover{background:rgba(255,90,90,.12);border-color:#ff5a5a;color:#ff5a5a}
 .btn.sm{width:auto;padding:12px 22px;font-size:.92rem}
 .linklike{background:none;border:none;color:var(--muted);font-family:inherit;font-size:.86rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .linklike:hover{color:var(--cyan)}
@@ -333,6 +335,19 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .attach:hover{border-color:var(--cyan)}
 .bub.img{padding:5px;background:rgba(255,255,255,.07)!important;border:1px solid var(--card-line)}
 .bub.img img{max-width:200px;max-height:260px;border-radius:12px;display:block;cursor:zoom-in}
+/* Burbuja "te ha mandado una copa" */
+.bub.drink{display:flex;align-items:center;gap:10px;background:linear-gradient(105deg,rgba(255,138,43,.22),rgba(255,46,139,.22))!important;border:1px solid rgba(255,138,43,.45);font-weight:600}
+.bub.drink .ico{font-size:1.5rem;animation:cheers 1.6s ease-in-out infinite}
+@keyframes cheers{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+/* "Está escribiendo…" */
+.typing-row{padding:0 18px;min-height:0;transition:min-height .15s}
+.typing-row.on{min-height:24px;padding-bottom:6px}
+.typing-bub{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:.82rem}
+.typing-bub .dots{display:inline-flex;gap:3px}
+.typing-bub .dots i{width:5px;height:5px;border-radius:50%;background:var(--muted);display:inline-block;animation:tdot 1.2s infinite}
+.typing-bub .dots i:nth-child(2){animation-delay:.2s}
+.typing-bub .dots i:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 
 /* VISOR DE FOTOS (lightbox) */
 #lightbox{position:fixed;inset:0;z-index:80;background:rgba(6,4,12,.93);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:22px;cursor:zoom-out;animation:fade .22s both}
@@ -342,6 +357,19 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .lb-close{position:fixed;top:16px;right:16px;width:46px;height:46px;border-radius:50%;border:1.5px solid rgba(255,255,255,.28);background:rgba(255,255,255,.10);color:#fff;font-size:1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:81;line-height:1}
 .lb-close:hover{background:rgba(255,255,255,.2)}
 .lb-close:active{transform:scale(.9)}
+
+/* Tarjeta de perfil (foto grande + descripción) */
+#photoCard{position:fixed;inset:0;z-index:82;display:none;align-items:center;justify-content:center;padding:22px;animation:fade .22s both}
+#photoCard.on{display:flex}
+.pc-bg{position:absolute;inset:0;background:rgba(6,4,12,.92);backdrop-filter:blur(12px)}
+.pc-card{position:relative;z-index:1;width:100%;max-width:340px;background:#140e26;border:1px solid var(--card-line);border-radius:24px;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.65);animation:lbpop .3s cubic-bezier(.2,.8,.3,1.15) both}
+.pc-close{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(0,0,0,.4);color:#fff;font-size:1.1rem;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;line-height:1}
+.pc-close:active{transform:scale(.9)}
+.pc-photo{width:100%;aspect-ratio:1;background:#0d0a18;display:flex;align-items:center;justify-content:center;font-family:'Unbounded',sans-serif;font-size:4rem;color:#fff}
+.pc-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.pc-name{font-family:'Unbounded',sans-serif;font-weight:600;font-size:1.3rem;padding:16px 20px 0}
+.pc-bio{padding:8px 20px 22px;color:var(--muted);font-size:.98rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.pc-bio.empty{font-style:italic;opacity:.6}
 
 /* FAB chats */
 #fab{position:fixed;bottom:20px;right:max(18px,calc(50vw - 240px + 18px));width:60px;height:60px;border-radius:50%;background:var(--grad);box-shadow:0 12px 30px rgba(255,46,139,.45);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:40;border:none;font-size:1.5rem}
@@ -675,6 +703,11 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 
   <!-- QUESTIONS -->
   <section class="screen" id="screen-questions">
+    <div class="topbar-edit" style="margin-bottom:14px">
+      <button class="chat-back" id="qExit" onclick="exitQuestions()" style="visibility:hidden">‹</button>
+      <div style="flex:1"></div>
+      <button class="linklike" id="qSaveExit" onclick="exitQuestions()" style="display:none">Guardar y salir</button>
+    </div>
     <div class="progress"><i id="qbar"></i></div>
     <div><span class="phase-tag" id="qphase">Sobre ti</span></div>
     <div class="qcount" id="qcount"></div>
@@ -748,10 +781,12 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       </div>
     </div>
     <div class="msgs" id="msgs"></div>
+    <div class="typing-row" id="typingRow"></div>
     <div class="chat-input">
+      <button class="attach" onclick="sendDrink()" title="Mándale una copa">🍹</button>
       <button class="attach" onclick="document.getElementById('chatPhoto').click()" title="Enviar foto">📷</button>
       <input type="file" id="chatPhoto" accept="image/*" style="display:none">
-      <input class="input" id="chatInput" placeholder="Escribe algo…" autocomplete="off" onkeydown="if(event.key==='Enter')sendMsg()">
+      <input class="input" id="chatInput" placeholder="Escribe algo…" autocomplete="off" oninput="onChatTyping()" onkeydown="if(event.key==='Enter')sendMsg()">
       <button class="send" onclick="sendMsg()">➤</button>
     </div>
   </section>
@@ -784,6 +819,11 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       </div>
     </div>
     <div class="field">
+      <label>Tu descripción <span style="opacity:.6">· la verán al pulsar tu foto</span></label>
+      <textarea class="input" id="myBio" maxlength="160" rows="3" placeholder="Algo sobre ti… (opcional)" style="resize:none;font-family:inherit;line-height:1.4"></textarea>
+      <div style="text-align:right;color:var(--muted);font-size:.72rem;margin-top:4px"><span id="myBioCount">0</span>/160</div>
+    </div>
+    <div class="field">
       <label>Notificaciones</label>
       <div class="notif-row">
         <div class="nt-info">
@@ -801,6 +841,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       <div class="qr-wrap" onclick="openLightbox(document.getElementById('qrImg').src)"><img id="qrImg" alt="Código QR"></div>
       <div style="color:var(--muted);font-size:.78rem;margin-top:10px">Pulsa para ampliar</div>
     </div>
+    <button class="btn danger-ghost" onclick="deleteMyProfile()" style="margin-top:26px">Borrar mi perfil</button>
+    <div style="color:var(--muted);font-size:.76rem;margin-top:8px;text-align:center">Desaparecerás de la fiesta y se borrarán tus datos de esta noche.</div>
   </section>
 
   <!-- GRUPO -->
@@ -912,6 +954,17 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
   <img id="lightboxImg" src="" alt="Foto ampliada">
 </div>
 
+<!-- TARJETA DE PERFIL (foto grande + descripción) -->
+<div id="photoCard" onclick="if(event.target.id==='photoCard'||event.target.classList.contains('pc-bg'))closePhotoCard()">
+  <div class="pc-bg"></div>
+  <div class="pc-card">
+    <button class="pc-close" onclick="closePhotoCard()" aria-label="Cerrar">✕</button>
+    <div class="pc-photo" id="pcPhoto"></div>
+    <div class="pc-name" id="pcName"></div>
+    <div class="pc-bio" id="pcBio"></div>
+  </div>
+</div>
+
 <!-- CELEBRACIÓN “Os gustáis” -->
 <div id="match-celebrate" onclick="closeCelebrate(event)">
   <div class="mc-confetti" id="mcConfetti"></div>
@@ -1015,22 +1068,26 @@ const QUESTIONS = [
     options:['Cerveza','Clara','Tinto de verano','Gin tonic','Gin Lemon','Cubalibre','Ron con cola','Vodka','Vodka con Red Bull','Whisky','Licor 43','Jägermeister','JägerBomb','Tequila','Margarita','Daiquiri','Piña colada','Cosmopolitan','Sex on the beach','Mojito','Aperol Spritz','Sangría','Calimocho','Vermut','Vino','Cava','Champán','Sidra','Chupitos','Bebida energética','Refresco','Agua','Sin alcohol','No bebo, conduzco', NOPREF]},
   {id:'amigos', short:'grupo',     phase:1, q:'¿Con cuántos amigos has venido?',
     options:['He venido solo/a','Con 1','Con 2','Con 3','Con 4','Con 5','Con 6','Con 7','Con más de 7', NOPREF]},
-  {id:'estado', short:'situación', phase:1, q:'¿Cuál es tu situación?',
+  {id:'estado', short:'situación', phase:1, core:true, q:'¿Cuál es tu situación?',
     options:['Soltero/a','Conociendo a alguien','En pareja','Es complicado', NOPREF]},
 
   /* — FASE 2 · TU MÚSICA — */
   {id:'musica', short:'música',    phase:2, q:'¿Qué música quieres esta noche?',
     options:['Reggaetón','Trap','Pop','Hip hop','R&B','Soul','Techno','House','Tech house','Deep house','EDM','Trance','Drum & Bass','Rock','Indie','Alternativo','Punk','Metal','Electrónica','Latino','Bachata','Salsa','Merengue','Dembow','Dancehall','Afrobeats','Disco','Funk','K-pop','Flamenco','Country','Los clásicos','Comerciales / Lo que pongan', NOPREF]},
   {id:'artista',short:'artista',   phase:2, q:'¿Tu artista favorito?', options:ARTISTAS},
-  {id:'estilo', short:'estilo',    phase:2, q:'¿Cómo describirías tu estilo?',
+  {id:'estilo', short:'estilo',    phase:2, core:true, q:'¿Cómo describirías tu estilo?',
     options:['Pijo/Pija','Cayetano/Cayetana','Choni/Cani','Boho Chic / Hippie','Alternativo/a / Grunge','Rockero/Rockera','Emo','Gótico/Gótica','Vintage','Deportivo/Deportiva','Streetwear / Urbano','Casual','Elegante','Minimalista','Y2K', NOPREF]},
+
+  /* — ¿QUÉ BUSCAS? (onboarding) — */
+  {id:'buscas', short:'plan',      phase:3, core:true, q:'¿Qué buscas esta noche?',
+    options:['Conocer gente','Ligar','Algo serio','Algo sin compromiso','Bailar sin parar','Pasármelo bien con amigos','Hacer amigos nuevos','Desconectar','Lo que surja', NOPREF]},
 
   /* — FASE 3 · ESTA NOCHE — */
   {id:'comoQuieres', short:'cómo te acerquen', phase:3, q:'¿Cómo te gustaría que se acercaran a ti esta noche?',
     options:['Que sea lanzado/a','Bailando conmigo','Hablando primero','Con humor','Con un piropo','Invitándome a una copa','Con miradas','Que un amigo nos presente','En la barra esperando turno', NOPREF]},
   {id:'comoVas', short:'cómo te acercas', phase:3, q:'Y tú, ¿cómo te acercas a alguien que te gusta?',
     options:['Voy lanzado/a','Bailando cerca','Empiezo conversación','Con humor','Lanzo un piropo','Invito a algo','Con miradas','Pido que nos presenten','Espero a coincidir en la barra', NOPREF]},
-  {id:'despues', short:'after',  phase:3, q:'¿Plan después de aquí?',
+  {id:'despues', short:'after',  phase:3, core:true, q:'¿Plan después de aquí?',
     options:['Donde caiga la noche','A un after','A por comida','A casa a dormir','Aún no lo sé', NOPREF]},
 ];
 
@@ -1039,6 +1096,14 @@ const PHASES = {
   2:{name:'Tu música', cls:'p2'},
   3:{name:'Esta noche', cls:'p3'},
 };
+
+/* Preguntas del ALTA inicial (solo 4, en este orden). El resto se contestan
+   luego desde el perfil. */
+const CORE_ORDER = ['estado','estilo','buscas','despues'];
+const CORE_QUESTIONS  = CORE_ORDER.map(id=>QUESTIONS.find(q=>q.id===id)).filter(Boolean);
+const EXTRA_QUESTIONS = QUESTIONS.filter(q=>!q.core);
+/* Lista que se está recorriendo ahora mismo en la pantalla de preguntas */
+let questionSet = CORE_QUESTIONS;
 
 /* Zonas del local — cada persona puede cambiar la suya en dos toques */
 const ZONES = ['Barra','Pista','Terraza / Fumadores','Reservado','Baños','Llegando','Saliendo'];
@@ -1122,6 +1187,15 @@ const DB = {
       if(error) console.warn('[SB upsertMe]', error.message);
     } else {
       await Store.set(uKey(me.id), JSON.stringify({id:me.id,name:me.name,age:me.age,gender:me.gender,photo:me.photo||'',zone:me.zone||'',groupCode:me.groupCode||'',answers:me.answers,day:TODAY,ts:Date.now()}), true);
+    }
+  },
+  /* Borra mi ficha de la sala (mi nombre desaparece para los demás) */
+  async deleteMe(){
+    if(SB_READY){
+      try{ await sb.from('party_users').delete().eq('party_code',PARTY_CODE).eq('night',TODAY).eq('profile_id',me.id); }
+      catch(e){ console.warn('[SB deleteMe]', e); }
+    } else {
+      await Store.del(uKey(me.id), true);
     }
   },
   async roomUsers(){
@@ -1372,6 +1446,26 @@ let genderFilter = 'todos', chatReturn = 'screen-matches';
 let activeFilters = { estado:new Set(), estilo:new Set(), despues:new Set() };
 let onlineUsers = new Set();
 let presenceChannel = null;
+let typingTimer = null, lastTypingSent = 0, typingHideTimer = null;
+
+/* ════════ "ESTÁ ESCRIBIENDO…" (tiempo real, sin tocar la base de datos) ════════ */
+function onChatTyping(){
+  if(!chatWith) return;
+  const now = Date.now();
+  if(now - lastTypingSent > 1500){ sendTyping(true); lastTypingSent = now; }
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=>{ sendTyping(false); }, 2500);
+}
+function sendTyping(active){
+  if(!chatWith || !presenceChannel) return;
+  try{ presenceChannel.send({ type:'broadcast', event:'typing', payload:{ from:me.id, to:chatWith.id, active:!!active } }); }catch(e){}
+  if(!active) lastTypingSent = 0;
+}
+function showTyping(on){
+  const row = document.getElementById('typingRow'); if(!row) return;
+  if(on){ row.innerHTML = '<span class="typing-bub">escribiendo<span class="dots"><i></i><i></i><i></i></span></span>'; row.classList.add('on'); }
+  else { row.innerHTML = ''; row.classList.remove('on'); }
+}
 let lastMatchSig = '', lastInboxSig = '', lastChatSig = '';
 let shownIds = new Set();   // ids de las fichas que ya están pintadas en pantalla
 const likes = { byMe:new Set(), toMe:new Set() }; // ids
@@ -1390,6 +1484,59 @@ function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.r
 function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('on'); setTimeout(()=>el.classList.remove('on'),2200); }
 
 /* ════════ VISOR DE FOTOS ════════ */
+/* Deriva la URL de la miniatura a partir de la foto grande (mismo Storage,
+   sufijo _thumb). Para base64 o vacío, devuelve tal cual. */
+function thumbURL(photo){
+  if(!photo || /^data:/i.test(photo)) return photo || '';
+  return photo.replace(/(\.jpe?g)(\?|$)/i, '_thumb$1$2');
+}
+/* La descripción/bio se guarda dentro de answers bajo una clave reservada,
+   así no hace falta cambiar la base de datos. */
+function bioOf(u){ return (u && u.answers && u.answers._bio) ? u.answers._bio : ''; }
+
+/* Si una foto (miniatura) falla al cargar, probamos la foto grande; si esa
+   también falla, mostramos la inicial sobre el color del avatar. */
+function avImgFail(img){
+  try{
+    const full = img.getAttribute('data-full');
+    if(full && img.src !== full){ img.src = full; return; }   // intentar la grande
+    const p=img.parentNode; if(!p) return;
+    img.remove();
+    p.textContent = p.getAttribute('data-ini') || '?';
+    p.style.background = p.getAttribute('data-fbg') || '#8b5cff';
+  }catch(e){}
+}
+/* Construye el avatar completo (.av) con miniatura + respaldo a inicial.
+   clickable=true → al pulsar abre la tarjeta de perfil con la descripción. */
+function avBox(u, extraClass, clickable){
+  const ini = esc((u.name||'?').charAt(0).toUpperCase());
+  const fbg = genderBg(u.gender);
+  const cls = 'av' + (extraClass ? (' '+extraClass) : '');
+  if(u.photo){
+    const t = esc(thumbURL(u.photo));
+    const full = esc(u.photo);
+    const click = clickable ? `onclick='event.stopPropagation();openPhotoCard(${JSON.stringify(u.id)})'` : '';
+    return `<div class="${cls}" style="background:${photoBg()}" data-ini="${ini}" data-fbg="${fbg}"><img src="${t}" data-full="${full}" ${click} onerror="avImgFail(this)"></div>`;
+  }
+  return `<div class="${cls}" style="background:${fbg}">${ini}</div>`;
+}
+
+/* Tarjeta de perfil: foto grande + nombre + descripción */
+function openPhotoCard(userId){
+  const u = (userId===me.id) ? me : roomCache[userId];
+  if(!u) return;
+  const photoEl = document.getElementById('pcPhoto');
+  if(u.photo){ photoEl.innerHTML = `<img src="${esc(u.photo)}" onerror="this.parentNode.textContent='${esc((u.name||'?').charAt(0).toUpperCase())}'">`; }
+  else { photoEl.textContent = (u.name||'?').charAt(0).toUpperCase(); }
+  document.getElementById('pcName').textContent = (u.name||'') + (u.age?(' · '+u.age):'');
+  const bioEl = document.getElementById('pcBio');
+  const bio = bioOf(u);
+  if(bio){ bioEl.textContent = bio; bioEl.className = 'pc-bio'; }
+  else { bioEl.textContent = (userId===me.id) ? 'Aún no has escrito una descripción. Edítala en tu perfil.' : 'Sin descripción.'; bioEl.className = 'pc-bio empty'; }
+  document.getElementById('photoCard').classList.add('on');
+}
+function closePhotoCard(){ document.getElementById('photoCard').classList.remove('on'); }
+
 function openLightbox(src){
   if(!src) return;
   const lb=document.getElementById('lightbox');
@@ -1403,7 +1550,7 @@ function closeLightbox(e){
   lb.classList.remove('on');
   document.getElementById('lightboxImg').src='';
 }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLightbox(); closeCelebrate(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLightbox(); closeCelebrate(); closePhotoCard(); } });
 
 /* ════════ AVISOS (vibración + sonido) ════════ */
 let _ac=null;
@@ -1838,29 +1985,43 @@ document.getElementById('inAge').addEventListener('input',validateProfile);
 document.getElementById('inPhoto').addEventListener('change', async function(){
   const f=this.files&&this.files[0]; if(!f) return;
   try{
-    let src;
-    try{ src = await createImageBitmap(f, { imageOrientation:'from-image' }); }
-    catch(e){
-      src = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>{const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=ev.target.result;}; r.onerror=rej; r.readAsDataURL(f); });
-    }
-    const s=512, c=document.createElement('canvas'); c.width=s; c.height=s;
-    const ctx=c.getContext('2d');
-    const m=Math.min(src.width, src.height);
-    ctx.drawImage(src, (src.width-m)/2, (src.height-m)/2, m, m, 0, 0, s, s);
-    const dataUrl=c.toDataURL('image/jpeg', .85);
-    me=me||{};
-    document.getElementById('photoPrev').innerHTML=`<img src="${dataUrl}">`;
+    await setProfilePhoto(f, document.getElementById('photoPrev'));
     document.getElementById('photoClear').style.display='inline';
-    me.photo=dataUrl;
-    if(SB_READY){
-      const path=`${PARTY_CODE}/${TODAY}/profile/${me.id}.jpg`;
-      const url=await uploadImage(dataUrl, path);
-      if(url) me.photo = url + '?v=' + Date.now();
-    }
-    saveMeLocal();
   }catch(e){ console.warn('foto perfil', e); toast('No se pudo cargar la foto'); }
 });
 function clearPhoto(){ if(me) me.photo=''; document.getElementById('photoPrev').innerHTML='📸'; document.getElementById('photoClear').style.display='none'; document.getElementById('inPhoto').value=''; }
+
+/* ════════ FOTOS DE PERFIL (grande + miniatura) ════════ */
+async function loadImageSrc(file){
+  try{ return await createImageBitmap(file, { imageOrientation:'from-image' }); }
+  catch(e){
+    return await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>{const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=ev.target.result;}; r.onerror=rej; r.readAsDataURL(file); });
+  }
+}
+function squareDataURL(src, size, quality){
+  const c=document.createElement('canvas'); c.width=size; c.height=size;
+  const ctx=c.getContext('2d');
+  const m=Math.min(src.width, src.height);
+  ctx.drawImage(src,(src.width-m)/2,(src.height-m)/2,m,m,0,0,size,size);
+  return c.toDataURL('image/jpeg', quality);
+}
+/* Genera foto grande (512) + miniatura (160), sube ambas a Storage y deja
+   me.photo con la URL grande. La miniatura se deriva por convención (_thumb). */
+async function setProfilePhoto(file, previewEl){
+  const src   = await loadImageSrc(file);
+  const full  = squareDataURL(src, 512, .85);
+  const thumb = squareDataURL(src, 160, .72);
+  me = me || {};
+  if(previewEl) previewEl.innerHTML = `<img src="${full}">`;
+  me.photo = full;                              // respaldo inmediato en base64
+  if(SB_READY){
+    const base = `${PARTY_CODE}/${TODAY}/profile/${me.id}`;
+    const urlFull = await uploadImage(full, base + '.jpg');
+    await uploadImage(thumb, base + '_thumb.jpg');
+    if(urlFull) me.photo = urlFull + '?v=' + Date.now();
+  }
+  saveMeLocal();
+}
 
 /* comprimir imagen para enviarla en el chat */
 /* Comprimir imagen respetando la orientación EXIF (importante para iPhone) */
@@ -1893,6 +2054,9 @@ function isImageMsg(t){
   if(!t) return false;
   return /^data:image\//.test(t) || (/^https?:\/\//.test(t) && /\/storage\/v1\/object\/public\//.test(t));
 }
+/* "Mándale una copa": mensaje especial con un marcador reservado */
+const DRINK_MARK = '::afines-copa::';
+function isDrinkMsg(t){ return t === DRINK_MARK; }
 
 /* Sube una imagen (dataURL o Blob) a Supabase Storage y devuelve su URL pública (CDN).
    Si no hay Supabase o falla, devuelve null y se usa el respaldo en base64. */
@@ -1928,12 +2092,13 @@ async function goQuestions(){
   me.age=parseInt(document.getElementById('inAge').value,10);
   await publishMe();
   setupRealtime();
-  qIndex=0; while(qIndex<QUESTIONS.length && me.answers[QUESTIONS[qIndex].id]) qIndex++;
-  if(qIndex>=QUESTIONS.length) qIndex=0;
+  questionSet = CORE_QUESTIONS;           // alta: solo las 4 preguntas
+  qIndex=0; while(qIndex<questionSet.length && me.answers[questionSet[qIndex].id]) qIndex++;
+  if(qIndex>=questionSet.length) qIndex=0;
   renderQ(); show('screen-questions');
 }
 
-/* SOLO PRUEBAS: rellena respuestas por defecto y salta a afines */
+/* SOLO PRUEBAS: marca el alta como hecha SIN rellenar respuestas por defecto */
 async function skipQuestionsTest(){
   const n=(document.getElementById('inName').value||'').trim();
   const a=parseInt(document.getElementById('inAge').value,10);
@@ -1942,42 +2107,44 @@ async function skipQuestionsTest(){
     return;
   }
   me.name=n; me.age=a;
-  me.answers = {};
-  for(const q of QUESTIONS){
-    const opt = q.options.find(o => !/prefiero no contestar/i.test(o)) || q.options[0];
-    me.answers[q.id] = opt;
-  }
+  me.answers = me.answers || {};          // NO se rellenan respuestas falsas
   me.done = true;
   await publishMe();
   setupRealtime();
   openMatches();
-  toast('Modo prueba: respuestas por defecto');
+  toast('Modo prueba: sin respuestas');
 }
 
 /* ════════ PREGUNTAS + AUTOCOMPLETADO ════════ */
 function renderQ(){
-  const q=QUESTIONS[qIndex];
-  const ph=PHASES[q.phase];
-  // posición dentro de la fase actual
-  const phaseQs = QUESTIONS.filter(x=>x.phase===q.phase);
-  const phaseIdx = phaseQs.findIndex(x=>x.id===q.id)+1;
-  document.getElementById('qbar').style.width=((qIndex+1)/QUESTIONS.length*100)+'%';
+  const q=questionSet[qIndex];
+  const ph=PHASES[q.phase] || {name:'Sobre ti', cls:'p1'};
+  document.getElementById('qbar').style.width=((qIndex+1)/questionSet.length*100)+'%';
   const tag=document.getElementById('qphase');
-  tag.textContent = `Parte ${q.phase} · ${ph.name}`;
+  tag.textContent = ph.name;
   tag.className = 'phase-tag '+ph.cls;
-  document.getElementById('qcount').textContent=`Pregunta ${phaseIdx} de ${phaseQs.length}  ·  ${qIndex+1}/${QUESTIONS.length}`;
+  document.getElementById('qcount').textContent=`Pregunta ${qIndex+1} de ${questionSet.length}`;
   document.getElementById('qtext').textContent=q.q;
   document.getElementById('acHint').textContent = '"Prefiero no contestar" no cuenta para la afinidad.';
   document.getElementById('qBack').style.visibility=qIndex===0?'hidden':'visible';
-  document.getElementById('qNext').textContent=qIndex===QUESTIONS.length-1?'Ver afines':'Siguiente';
-  const inp=document.getElementById('acInput'); inp.value=me.answers[q.id]||'';
-  acSelected=me.answers[q.id]||null;
-  document.getElementById('qNext').disabled=!acSelected; closeDrop();
+  document.getElementById('qNext').textContent=qIndex===questionSet.length-1?'Listo' : 'Siguiente';
+  // El campo arranca SIEMPRE vacío (sin respuesta por defecto). El placeholder
+  // recuerda lo elegido antes si ya había respuesta.
+  const inp=document.getElementById('acInput');
+  const prev = me.answers[q.id] || '';
+  inp.value='';
+  inp.placeholder = prev ? ('Antes elegiste: '+prev+' · escribe para cambiar') : 'Escribe para ver opciones…';
+  acSelected=null;
+  document.getElementById('qNext').disabled = !prev;   // si ya había respuesta, puede avanzar sin tocar
+  // Si ya completó el alta, puede salir de las preguntas en cualquier momento
+  const canExit = !!(me && me.done);
+  document.getElementById('qSaveExit').style.display = canExit ? 'inline' : 'none';
+  closeDrop();
   setTimeout(()=>inp.focus(),120);
 }
 function filterOpts(q,text){ const t=norm(text); if(!t) return q.options; return q.options.filter(o=>norm(o).includes(t)); }
 function openDrop(){
-  const q=QUESTIONS[qIndex], inp=document.getElementById('acInput'), drop=document.getElementById('acDrop');
+  const q=questionSet[qIndex], inp=document.getElementById('acInput'), drop=document.getElementById('acDrop');
   const opts=filterOpts(q,inp.value), t=norm(inp.value);
   let html=opts.map(o=>{ let label=esc(o); if(t){ const i=norm(o).indexOf(t); if(i>=0) label=esc(o.slice(0,i))+'<b>'+esc(o.slice(i,i+t.length))+'</b>'+esc(o.slice(i+t.length)); }
     const cls = o===NOPREF ? 'ac-item skip' : 'ac-item';
@@ -1987,20 +2154,26 @@ function openDrop(){
 function closeDrop(){ document.getElementById('acDrop').classList.remove('on'); }
 function pick(val){ document.getElementById('acInput').value=val; acSelected=val; document.getElementById('qNext').disabled=false; closeDrop(); }
 document.getElementById('acInput').addEventListener('input',function(){
-  const q=QUESTIONS[qIndex], t=norm(this.value);
+  const q=questionSet[qIndex], t=norm(this.value);
   const exact=q.options.find(o=>norm(o)===t);
   acSelected = exact ? exact : null;
-  document.getElementById('qNext').disabled=!acSelected; openDrop();
+  // si vacía el campo pero ya tenía respuesta previa, deja avanzar (mantiene la vieja)
+  const prev = me.answers[q.id] || '';
+  document.getElementById('qNext').disabled = !(acSelected || (!this.value && prev));
+  openDrop();
 });
 document.getElementById('acInput').addEventListener('focus',openDrop);
 document.getElementById('acInput').addEventListener('blur',()=>setTimeout(closeDrop,160));
 async function nextQ(){
-  if(!acSelected) return;
-  me.answers[QUESTIONS[qIndex].id]=acSelected; await publishMe();
-  if(qIndex>=QUESTIONS.length-1){ me.done=true; await publishMe(); openMatches(); return; }
+  const q=questionSet[qIndex];
+  // si eligió algo nuevo, lo guardamos; si dejó vacío, conservamos lo anterior
+  if(acSelected){ me.answers[q.id]=acSelected; await publishMe(); }
+  else if(!me.answers[q.id]){ return; }  // sin respuesta nueva ni vieja: no avanza
+  if(qIndex>=questionSet.length-1){ me.done=true; await publishMe(); openMatches(); return; }
   qIndex++; renderQ();
 }
 function prevQ(){ if(qIndex>0){ qIndex--; renderQ(); } }
+function exitQuestions(){ openMatches(); }
 
 /* ════════ PUBLICAR / CARGAR ════════ */
 async function publishMe(){
@@ -2168,6 +2341,14 @@ function setupPresence(){
       })
       .on('presence', { event:'join' }, ({key})=>{ onlineUsers.add(key); updatePresenceVisuals(); })
       .on('presence', { event:'leave' }, ({key})=>{ onlineUsers.delete(key); updatePresenceVisuals(); })
+      .on('broadcast', { event:'typing' }, ({payload})=>{
+        if(!payload || !chatWith) return;
+        if(payload.to===me.id && payload.from===chatWith.id){
+          showTyping(!!payload.active);
+          clearTimeout(typingHideTimer);
+          if(payload.active){ typingHideTimer=setTimeout(()=>showTyping(false), 4000); }
+        }
+      })
       .subscribe(async (status)=>{
         if(status === 'SUBSCRIBED'){
           try{ await presenceChannel.track({ user_id: me.id, online_at: new Date().toISOString() }); }catch(e){}
@@ -2227,12 +2408,12 @@ function closeCoincPopup(){ document.getElementById('coincPopup').classList.remo
 function goToQuestionsFromProfile(){
   if(!me){ return; }
   closeMyProfile();
+  questionSet = QUESTIONS;                 // desde el perfil: todas las preguntas
   qIndex = 0;
-  // Si ya hay respuestas, ir a la primera SIN contestar; si están todas, empieza desde 0 para editar
   if(me.answers){
     let firstEmpty = -1;
-    for(let i=0;i<QUESTIONS.length;i++){
-      if(!me.answers[QUESTIONS[i].id]){ firstEmpty = i; break; }
+    for(let i=0;i<questionSet.length;i++){
+      if(!me.answers[questionSet[i].id]){ firstEmpty = i; break; }
     }
     qIndex = firstEmpty >= 0 ? firstEmpty : 0;
   }
@@ -2244,8 +2425,8 @@ function updateQuestionsButtonLabel(){
   const ans = me.answers || {};
   const total = QUESTIONS.length;
   let done = 0; for(const q of QUESTIONS){ if(ans[q.id]) done++; }
-  btn.textContent = (done === 0) ? 'Contestar preguntas'
-    : (done < total ? `Seguir contestando preguntas (${done}/${total})` : 'Recontestar preguntas');
+  btn.textContent = (done === 0) ? 'Contestar más preguntas'
+    : (done < total ? `Completar más preguntas (${done}/${total})` : 'Recontestar preguntas');
 }
 
 /* ════════ FILTROS AVANZADOS ════════ */
@@ -2764,6 +2945,9 @@ function openMyProfile(){
   document.getElementById('myName').value = me.name || '';
   document.getElementById('myAge').value  = me.age  || '';
   setMyGender(me.gender || '');
+  const bio = (me.answers && me.answers._bio) ? me.answers._bio : '';
+  const bioEl = document.getElementById('myBio');
+  if(bioEl){ bioEl.value = bio; document.getElementById('myBioCount').textContent = bio.length; }
   const big = document.getElementById('myPhotoBig');
   if(me.photo){ big.innerHTML = `<img src="${me.photo}">`; } else { big.innerHTML = '📸'; }
   generateQR();
@@ -2778,30 +2962,14 @@ function setMyGender(g){
   document.querySelectorAll('#mySegGender button').forEach(b=>b.classList.toggle('on', b.dataset.g===g));
 }
 function zoomMyPhoto(){
-  if(!me || !me.photo) return;
-  openLightbox(me.photo);
+  if(!me) return;
+  if(me.photo) openPhotoCard(me.id);
 }
 document.getElementById('myPhotoInput').addEventListener('change', async function(){
   const f = this.files && this.files[0]; if(!f) return;
   try{
-    let src;
-    try{ src = await createImageBitmap(f, { imageOrientation:'from-image' }); }
-    catch(e){
-      src = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>{const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=ev.target.result;}; r.onerror=rej; r.readAsDataURL(f); });
-    }
-    const s=512, c=document.createElement('canvas'); c.width=s; c.height=s;
-    const ctx=c.getContext('2d');
-    const m=Math.min(src.width, src.height);
-    ctx.drawImage(src, (src.width-m)/2, (src.height-m)/2, m, m, 0, 0, s, s);
-    const dataUrl = c.toDataURL('image/jpeg', .85);
-    document.getElementById('myPhotoBig').innerHTML = `<img src="${dataUrl}">`;
-    me.photo = dataUrl;
-    if(SB_READY){
-      const path = `${PARTY_CODE}/${TODAY}/profile/${me.id}.jpg`;
-      const url = await uploadImage(dataUrl, path);
-      if(url) me.photo = url + '?v=' + Date.now();
-    }
-    saveMeLocal();
+    await setProfilePhoto(f, document.getElementById('myPhotoBig'));
+    await publishMe();
   }catch(e){ console.warn('foto editar', e); toast('No se pudo cargar la foto'); }
 });
 async function saveMyProfile(){
@@ -2811,10 +2979,32 @@ async function saveMyProfile(){
   if(!(a>=18 && a<=99)){ toast('Edad no válida'); return; }
   if(!me.gender){ toast('Elige una opción'); return; }
   me.name = n; me.age = a;
+  // Descripción (se guarda dentro de answers para no tocar la base de datos)
+  me.answers = me.answers || {};
+  const bio = (document.getElementById('myBio').value||'').trim().slice(0,160);
+  if(bio) me.answers._bio = bio; else delete me.answers._bio;
   saveMeLocal();
   await publishMe();
   toast('Perfil actualizado');
   closeMyProfile();
+}
+/* Contador de caracteres de la descripción */
+(function(){ const b=document.getElementById('myBio'); if(b) b.addEventListener('input',function(){ document.getElementById('myBioCount').textContent=this.value.length; }); })();
+
+/* ════════ BORRAR PERFIL ════════ */
+async function deleteMyProfile(){
+  if(!me) return;
+  if(!confirm('¿Seguro que quieres borrar tu perfil?\n\nDesaparecerás de la fiesta y se borrarán tus datos de esta noche. Podrás volver a entrar cuando quieras.')) return;
+  try{ await DB.deleteMe(); }catch(e){}
+  // dejar de aparecer "en línea" y cortar tiempo real
+  try{ if(presenceChannel){ await presenceChannel.untrack(); sb.removeChannel(presenceChannel); presenceChannel=null; } }catch(e){}
+  try{ if(rtChannel){ sb.removeChannel(rtChannel); rtChannel=null; rtForId=null; } }catch(e){}
+  // borrar datos locales
+  try{ await Store.del('me', false); }catch(e){}
+  me = null; chatWith = null; roomCache = {}; roomLoaded = false; onlineUsers = new Set();
+  toast('Perfil borrado');
+  const wb=document.getElementById('welcomeBtn'); if(wb) wb.textContent='Entrar';
+  show('screen-welcome');
 }
 
 /* QR del enlace de la app para invitar a más gente */
@@ -2910,8 +3100,6 @@ async function refreshMatches(force){
   }
   cont.innerHTML=list.map(({u,a})=>{
     const g=u.gender==='chica'?'g-f':u.gender==='chico'?'g-m':'';
-    const av=u.photo?`<img src="${u.photo}" onclick='event.stopPropagation();openLightbox(this.src)'>`:esc((u.name||'?').charAt(0).toUpperCase());
-    const bg = u.photo ? photoBg() : genderBg(u.gender);
     const iLiked = likes.byMe.has(u.id);
     const theyLiked = likes.toMe.has(u.id);
     const isMutual = iLiked && theyLiked;
@@ -2925,7 +3113,7 @@ async function refreshMatches(force){
       : (theyLiked ? '<span class="likes-you-tag">❤ Le gustas</span>' : '');
     const heartSym = `<span class="heart-out">♡</span><span class="heart-fill">♥</span>`;
     return `<div class="match ${g} ${isMutual?'mutual':''} ${fresh}" data-id="${u.id}" onclick='openChatById("${u.id}")'>
-      <div class="av" style="background:${bg}">${av}</div>
+      ${avBox(u, '', true)}
       <div class="m-body">
         <div class="m-name"><span class="nm">${esc(u.name)} <span class="age">· ${u.age||''}</span></span>${likeTag}</div>
         <div class="m-shared">${groupPill}${onlineSpan}${zoneTag}</div>
@@ -2997,22 +3185,34 @@ function openChatById(id){ getRoomMap().then(m=>{ const u=m[id]; if(u) openChat(
 function openChat(u){
   chatWith={id:u.id,name:u.name,photo:u.photo||'',gender:u.gender}; lastChatSig='';
   me.reads=me.reads||{}; me.reads[u.id]=Date.now(); saveMeLocal();
+  showTyping(false);
   const isOnline = onlineUsers.has(u.id);
   document.getElementById('chatName').innerHTML=`${esc(u.name)}<small data-chat-sub>${isOnline?'<span class="online-dot">en línea</span>':('en '+esc(VENUE_NAME||'tu fiesta'))}</small>`;
   const av=document.getElementById('chatAv'); av.style.background = u.photo ? photoBg() : genderBg(u.gender);
-  av.innerHTML=u.photo?`<img src="${u.photo}" onclick='openLightbox(this.src)'>`:esc((u.name||'?').charAt(0).toUpperCase());
+  av.innerHTML=u.photo?`<img src="${thumbURL(u.photo)}" data-full="${esc(u.photo)}" onclick='openPhotoCard(${JSON.stringify(u.id)})' onerror="avImgFail(this)">`:esc((u.name||'?').charAt(0).toUpperCase());
+  if(av.firstChild && av.firstChild.tagName==='IMG'){ av.setAttribute('data-ini', esc((u.name||'?').charAt(0).toUpperCase())); av.setAttribute('data-fbg', genderBg(u.gender)); }
   document.getElementById('chatInput').value=''; show('screen-chat'); renderChat();
 }
-function closeChat(){ chatWith=null; show(chatReturn); if(chatReturn==='screen-matches') refreshMatches(); else renderInbox(); }
+function closeChat(){ sendTyping(false); showTyping(false); chatWith=null; show(chatReturn); if(chatReturn==='screen-matches') refreshMatches(); else renderInbox(); }
 async function renderChat(){
   if(!chatWith) return;
   const arr=await DB.messagesWith(chatWith.id);
   const sig = chatWith.id+'|'+arr.length+'|'+(arr.length?arr[arr.length-1].ts+':'+arr[arr.length-1].from:'');
   if(sig!==lastChatSig){
     lastChatSig = sig;
+    showTyping(false);
     const box=document.getElementById('msgs');
     if(!arr.length){ box.innerHTML=`<div class="chat-empty">Rompe el hielo 👋<br>Tenéis afinidad, algo de lo que hablar seguro.</div>`; }
-    else { box.innerHTML=arr.map(m=>{ const mine=m.from===me.id?'me':'them'; return isImageMsg(m.text) ? `<div class="bub ${mine} img"><img src="${m.text}" onclick="openLightbox(this.src)"></div>` : `<div class="bub ${mine}">${esc(m.text)}</div>`; }).join(''); box.scrollTop=box.scrollHeight; }
+    else { box.innerHTML=arr.map(m=>{
+        const mine=m.from===me.id?'me':'them';
+        if(isDrinkMsg(m.text)){
+          const txt = mine==='me' ? 'Le has mandado una copa 🍻' : 'Te ha mandado una copa 🍻';
+          return `<div class="bub ${mine} drink"><span class="ico">🍹</span><span>${txt}</span></div>`;
+        }
+        return isImageMsg(m.text)
+          ? `<div class="bub ${mine} img"><img src="${m.text}" onclick="openLightbox(this.src)"></div>`
+          : `<div class="bub ${mine}">${esc(m.text)}</div>`;
+      }).join(''); box.scrollTop=box.scrollHeight; }
   }
   me.reads=me.reads||{}; me.reads[chatWith.id]=Date.now(); saveMeLocal();
 }
@@ -3020,9 +3220,17 @@ async function sendMsg(){
   const inp=document.getElementById('chatInput'); const text=inp.value.trim(); if(!text||!chatWith) return;
   inp.value='';
   inp.focus();   // mantener teclado abierto en el móvil
+  sendTyping(false);
   await DB.send(chatWith.id, text);
   renderChat();
-  inp.focus();   // re-enfocar tras el render por si acaso
+  inp.focus();
+}
+/* Mándale una copa */
+async function sendDrink(){
+  if(!chatWith) return;
+  await DB.send(chatWith.id, DRINK_MARK);
+  toast('🍹 Copa enviada');
+  renderChat();
 }
 
 /* ════════ BANDEJA + AVISO ════════ */
@@ -3052,13 +3260,11 @@ async function renderInbox(){
   if(!convs.length){ cont.innerHTML=`<div class="empty"><div class="e-ico">💬</div><div>Aún no tienes chats.</div><div style="margin-top:6px;font-size:.85rem">Abre a alguien desde "Afines" y escríbele.</div></div>`; return; }
   cont.innerHTML=convs.map(c=>{ const u=map[c.other]; if(!u) return '';
     const g=u.gender==='chica'?'g-f':u.gender==='chico'?'g-m':'';
-    const av=u.photo?`<img src="${u.photo}" onclick='event.stopPropagation();openLightbox(this.src)'>`:esc((u.name||'?').charAt(0).toUpperCase());
-    const bg = u.photo ? photoBg() : genderBg(u.gender);
-    const lastRaw = isImageMsg(c.last.text) ? '📷 Foto' : c.last.text;
+    const lastRaw = isImageMsg(c.last.text) ? '📷 Foto' : (isDrinkMsg(c.last.text) ? '🍹 Copa' : c.last.text);
     const last=esc((c.last.from===me.id?'Tú: ':'')+lastRaw).slice(0,42);
     const badge=c.unread?`<span class="unread">${c.unread>9?'9+':c.unread}</span>`:'';
     return `<div class="match ${g}" onclick='openChatById("${u.id}")'>
-      <div class="av" style="background:${bg}">${av}</div>
+      ${avBox(u, '', true)}
       <div class="m-body"><div class="m-name">${esc(u.name)}</div><div class="m-shared">${last}</div></div>${badge}</div>`;
   }).join('');
 }
@@ -3268,7 +3474,8 @@ Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick
   toggleGroupChatMenu,groupMenuAddPeople,groupMenuSharePerfil,openSharePicker,closeSharePicker,pickAndShare,
   showCoincidences,closeCoincPopup,goToQuestionsFromProfile,
   openFilterPanel,closeFilterPanel,toggleFilter,clearFilters,applyFilters,
-  openInviteOverlay,closeInviteOverlay,restartClean});
+  openInviteOverlay,closeInviteOverlay,restartClean,
+  onChatTyping,sendDrink,openPhotoCard,closePhotoCard,deleteMyProfile,exitQuestions});
 
 init();
 </script>
