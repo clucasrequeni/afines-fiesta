@@ -443,6 +443,15 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .gr-mygroup .names{color:var(--muted);font-size:.88rem;margin-top:4px}
 .gr-mygroup .leave-link{color:#ff8a8a;text-decoration:underline;background:none;border:none;font-family:inherit;font-size:.78rem;cursor:pointer}
 .gr-section-title{font-size:.74rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
+/* Barra de chips para cambiar entre grupos */
+.gchips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;-webkit-overflow-scrolling:touch}
+.gchips::-webkit-scrollbar{display:none}
+.gchip{position:relative;flex:none;padding:9px 15px;border-radius:30px;border:1.5px solid var(--card-line);background:var(--card);color:var(--muted);font-family:'Unbounded',sans-serif;font-weight:600;font-size:.82rem;letter-spacing:.05em;cursor:pointer;white-space:nowrap}
+.gchip .gchip-n{color:var(--muted);font-weight:400;font-size:.74rem;margin-left:2px}
+.gchip.on{background:linear-gradient(105deg,#ffd23f,#ff8a2b);border-color:transparent;color:#1a1130}
+.gchip.on .gchip-n{color:rgba(26,17,48,.7)}
+.gchip.new{border-style:dashed;border-color:rgba(255,210,63,.5);color:#ffd23f}
+.gchip-badge{position:absolute;top:-5px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--pink);color:#fff;font-family:'Hanken Grotesk',sans-serif;font-size:.66rem;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
 .gr-person{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--card-line);border-radius:var(--r);padding:12px;margin-bottom:10px}
 .gr-person .av{width:46px;height:46px;font-size:1rem}
 .gr-person .body{flex:1;min-width:0}
@@ -1175,18 +1184,29 @@ async function initSupabase(){
   }catch(e){ console.warn('[SB init]', e); return false; }
 }
 
+/* Lee la lista de grupos de un usuario: de answers._groups (varios grupos),
+   o del group_code antiguo (un solo grupo) como respaldo. */
+function parseGroups(answers, groupCode){
+  if(answers && Array.isArray(answers._groups)) return answers._groups.filter(Boolean);
+  return groupCode ? [groupCode] : [];
+}
+
 /* Capa de datos */
 const DB = {
   async upsertMe(){
+    // Sincronizar la lista de grupos dentro de answers (sin tocar la base de datos)
+    me.answers = me.answers || {};
+    if(me.groups && me.groups.length) me.answers._groups = me.groups; else delete me.answers._groups;
+    const primaryGroup = (me.groups && me.groups[0]) || '';
     if(SB_READY){
       const { error } = await sb.from('party_users').upsert({
         party_code:PARTY_CODE, night:TODAY, profile_id:me.id,
         name:me.name, age:me.age, gender:me.gender, photo:me.photo||'',
-        zone:me.zone||'', group_code:me.groupCode||'', answers:me.answers, updated_at:new Date().toISOString()
+        zone:me.zone||'', group_code:primaryGroup, answers:me.answers, updated_at:new Date().toISOString()
       }, { onConflict:'party_code,night,profile_id' });
       if(error) console.warn('[SB upsertMe]', error.message);
     } else {
-      await Store.set(uKey(me.id), JSON.stringify({id:me.id,name:me.name,age:me.age,gender:me.gender,photo:me.photo||'',zone:me.zone||'',groupCode:me.groupCode||'',answers:me.answers,day:TODAY,ts:Date.now()}), true);
+      await Store.set(uKey(me.id), JSON.stringify({id:me.id,name:me.name,age:me.age,gender:me.gender,photo:me.photo||'',zone:me.zone||'',groupCode:primaryGroup,groups:me.groups||[],answers:me.answers,day:TODAY,ts:Date.now()}), true);
     }
   },
   /* Borra mi ficha de la sala (mi nombre desaparece para los demás) */
@@ -1205,12 +1225,12 @@ const DB = {
         .eq('party_code',PARTY_CODE).eq('night',TODAY);
       if(error){ console.warn('[SB roomUsers]', error.message); return null; }
       return (data||[]).filter(u=>u.profile_id!==me.id)
-        .map(u=>({id:u.profile_id,name:u.name,age:u.age,gender:u.gender,photo:u.photo||'',zone:u.zone||'',groupCode:u.group_code||'',answers:u.answers||{}}));
+        .map(u=>({id:u.profile_id,name:u.name,age:u.age,gender:u.gender,photo:u.photo||'',zone:u.zone||'',groups:parseGroups(u.answers,u.group_code),groupCode:u.group_code||'',answers:u.answers||{}}));
     } else {
       const out=[];
       for(const k of await Store.list(`fiesta:${PARTY_CODE}:user:`,true)){
         const v=await Store.get(k,true); if(!v) continue;
-        try{ const u=JSON.parse(v); if(u.day===TODAY && u.id!==me.id) out.push(u); }catch(e){}
+        try{ const u=JSON.parse(v); if(u.day===TODAY && u.id!==me.id){ u.groups=parseGroups(u.answers,u.groupCode); out.push(u); } }catch(e){}
       }
       return out;
     }
@@ -1342,7 +1362,7 @@ const DB = {
       if(error){ console.warn('[SB addInvite]', error); return { ok:false, err: error.message || JSON.stringify(error) }; }
       return { ok:true };
     } else {
-      const k = `fiesta:${PARTY_CODE}:invite:${me.id}__${toId}`;
+      const k = `fiesta:${PARTY_CODE}:invite:${me.id}__${toId}__${groupCode||''}`;
       await Store.set(k, JSON.stringify({id:k,from:me.id,to:toId,group_code:groupCode,status:'pending',day:TODAY,ts:Date.now()}), true);
       return { ok:true };
     }
@@ -1403,33 +1423,33 @@ const DB = {
     }catch(e){ console.warn('[push save]', e); return false; }
   },
   /* ════════ 👥 CHAT DE GRUPO ════════ */
-  async sendGroupMsg(content){
-    if(!me || !me.groupCode || !content) return false;
+  async sendGroupMsg(content, code){
+    if(!me || !code || !content) return false;
     if(SB_READY){
       const { error } = await sb.from('party_group_messages').insert({
         party_code:PARTY_CODE, night:TODAY,
-        group_code:me.groupCode, from_id:me.id, content
+        group_code:code, from_id:me.id, content
       });
       if(error){ console.warn('[SB sendGroupMsg]', error.message); return false; }
       return true;
     } else {
-      const k=`fiesta:${PARTY_CODE}:gmsg:${me.groupCode}:${Date.now()}`;
-      await Store.set(k, JSON.stringify({group_code:me.groupCode, from:me.id, text:content, ts:Date.now(), day:TODAY}), true);
+      const k=`fiesta:${PARTY_CODE}:gmsg:${code}:${Date.now()}`;
+      await Store.set(k, JSON.stringify({group_code:code, from:me.id, text:content, ts:Date.now(), day:TODAY}), true);
       return true;
     }
   },
-  async groupMessages(){
-    if(!me || !me.groupCode) return [];
+  async groupMessages(code){
+    if(!me || !code) return [];
     if(SB_READY){
       const { data, error } = await sb.from('party_group_messages')
         .select('id,from_id,content,created_at')
-        .eq('party_code',PARTY_CODE).eq('night',TODAY).eq('group_code',me.groupCode)
+        .eq('party_code',PARTY_CODE).eq('night',TODAY).eq('group_code',code)
         .order('created_at',{ ascending:true });
       if(error){ console.warn('[SB groupMessages]', error.message); return []; }
       return (data||[]).map(m=>({id:m.id,from:m.from_id,text:m.content,ts:new Date(m.created_at).getTime()}));
     } else {
       const out=[];
-      for(const k of await Store.list(`fiesta:${PARTY_CODE}:gmsg:${me.groupCode}:`,true)){
+      for(const k of await Store.list(`fiesta:${PARTY_CODE}:gmsg:${code}:`,true)){
         const v=await Store.get(k,true); if(!v) continue;
         try{ const m=JSON.parse(v); if(m.day===TODAY) out.push({id:k,from:m.from,text:m.text,ts:m.ts}); }catch(e){}
       }
@@ -1933,6 +1953,8 @@ async function enterParty(){
   if(me && me.day!==TODAY){ me=null; await Store.del('me',false); }
   if(me){
     me.reads = me.reads || {};
+    // Migración: de un solo grupo (groupCode) a varios (groups[])
+    if(!Array.isArray(me.groups)) me.groups = me.groupCode ? [me.groupCode] : [];
     if(SB_READY && AUTH_ID && me.id!==AUTH_ID){ me.id = AUTH_ID; saveMeLocal(); }
     if(me.name) await publishMe();
     setupRealtime();
@@ -1967,7 +1989,7 @@ async function purgeOld(){
 /* ════════ ALTA ════════ */
 async function goConsent(){ if(me && me.done){ openMatches(); return; } show('screen-consent'); }
 function goProfile(){
-  if(!me){ me={id:(AUTH_ID||uid()),name:'',age:null,gender:'',photo:'',answers:{},reads:{},day:TODAY,done:false}; }
+  if(!me){ me={id:(AUTH_ID||uid()),name:'',age:null,gender:'',photo:'',answers:{},reads:{},groups:[],day:TODAY,done:false}; }
   document.getElementById('inName').value=me.name||'';
   document.getElementById('inAge').value=me.age||'';
   if(me.gender) setGender(me.gender);
@@ -1991,28 +2013,80 @@ document.getElementById('inPhoto').addEventListener('change', async function(){
 });
 function clearPhoto(){ if(me) me.photo=''; document.getElementById('photoPrev').innerHTML='📸'; document.getElementById('photoClear').style.display='none'; document.getElementById('inPhoto').value=''; }
 
-/* ════════ FOTOS DE PERFIL (grande + miniatura) ════════ */
-/* imageOrientation:'none' → muestra los píxeles TAL CUAL están en el archivo,
-   sin girar ni espejar. La foto sale como se ve en la cámara. */
-async function loadImageSrc(file){
-  try{ return await createImageBitmap(file, { imageOrientation:'none' }); }
-  catch(e){
-    return await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>{const img=new Image(); try{img.style.imageOrientation='none';}catch(_){} img.onload=()=>res(img); img.onerror=rej; img.src=ev.target.result;}; r.onerror=rej; r.readAsDataURL(file); });
+/* ════════ FOTOS: enderezar SIEMPRE, espejar NUNCA ════════
+   El iPhone (y muchos Android) guardan los píxeles tumbados + una etiqueta EXIF
+   que dice cómo enderezar. Leemos esa etiqueta nosotros mismos y aplicamos SOLO
+   el giro necesario para que la foto salga derecha; nunca aplicamos espejo. */
+function exifOrientation(buf){
+  try{
+    const view = new DataView(buf);
+    if(view.getUint16(0,false) !== 0xFFD8) return 1;     // no es JPEG
+    const len = view.byteLength; let offset = 2;
+    while(offset < len){
+      const marker = view.getUint16(offset, false); offset += 2;
+      if(marker === 0xFFE1){                              // APP1 (Exif)
+        if(view.getUint32(offset+2, false) !== 0x45786966) return 1;  // "Exif"
+        const little = view.getUint16(offset+8, false) === 0x4949;
+        const tiff = offset + 8;
+        const tags = view.getUint16(tiff+10, little); // nº de entradas en IFD0
+        const dir = tiff + 12;
+        for(let i=0;i<tags;i++){
+          const entry = dir + i*12;
+          if(view.getUint16(entry, little) === 0x0112) return view.getUint16(entry+8, little);
+        }
+        return 1;
+      } else if((marker & 0xFF00) !== 0xFF00){ break; }
+      else { offset += view.getUint16(offset, false); }
+    }
+  }catch(e){}
+  return 1;
+}
+/* Orientación EXIF → grados de giro, QUITANDO cualquier espejo (2,4,5,7) */
+function rotForOrientation(o){
+  if(o===3 || o===4) return 180;
+  if(o===5 || o===6) return 90;
+  if(o===7 || o===8) return 270;
+  return 0;
+}
+/* Carga la imagen como píxeles crudos + el giro necesario para enderezarla */
+async function orientedSource(file){
+  let rot = 0;
+  try{ rot = rotForOrientation(exifOrientation(await file.arrayBuffer())); }catch(e){}
+  try{
+    const bmp = await createImageBitmap(file, { imageOrientation:'none' });  // crudo, sin transformar
+    return { src: bmp, rot };
+  }catch(e){
+    // Respaldo: <img> (los navegadores modernos ya lo enderezan) → sin giro extra
+    const img = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>{const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=ev.target.result;}; r.onerror=rej; r.readAsDataURL(file); });
+    return { src: img, rot: 0 };
   }
 }
-function squareDataURL(src, size, quality){
-  const c=document.createElement('canvas'); c.width=size; c.height=size;
-  const ctx=c.getContext('2d');
-  const m=Math.min(src.width, src.height);
-  ctx.drawImage(src,(src.width-m)/2,(src.height-m)/2,m,m,0,0,size,size);
+/* Devuelve un canvas con la imagen YA enderezada (giro aplicado, sin espejo) */
+function uprightCanvas(src, rot){
+  const sw = src.width, sh = src.height;
+  const turned = (rot===90 || rot===270);
+  const w = turned ? sh : sw, h = turned ? sw : sh;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.translate(w/2, h/2);
+  ctx.rotate(rot * Math.PI / 180);
+  ctx.drawImage(src, -sw/2, -sh/2);
+  return c;
+}
+/* Recorta cuadrado centrado a partir de la imagen enderezada */
+function squareDataURL(srcObj, size, quality){
+  const up = uprightCanvas(srcObj.src, srcObj.rot);
+  const m = Math.min(up.width, up.height);
+  const c = document.createElement('canvas'); c.width = size; c.height = size;
+  c.getContext('2d').drawImage(up, (up.width-m)/2, (up.height-m)/2, m, m, 0, 0, size, size);
   return c.toDataURL('image/jpeg', quality);
 }
 /* Genera foto grande (512) + miniatura (160), sube ambas a Storage y deja
    me.photo con la URL grande. La miniatura se deriva por convención (_thumb). */
 async function setProfilePhoto(file, previewEl){
-  const src   = await loadImageSrc(file);
-  const full  = squareDataURL(src, 512, .85);
-  const thumb = squareDataURL(src, 160, .72);
+  const srcObj = await orientedSource(file);
+  const full  = squareDataURL(srcObj, 512, .85);
+  const thumb = squareDataURL(srcObj, 160, .72);
   me = me || {};
   if(previewEl) previewEl.innerHTML = `<img src="${full}">`;
   me.photo = full;                              // respaldo inmediato en base64
@@ -2025,28 +2099,14 @@ async function setProfilePhoto(file, previewEl){
   saveMeLocal();
 }
 
-/* comprimir imagen para enviarla en el chat */
-/* imageOrientation:'none' → tal cual la cámara, sin girar ni espejar */
+/* Comprimir imagen para el chat: enderezada (sin espejo), redimensionada */
 async function compressImage(file, maxDim, quality){
-  let src;
-  try{
-    src = await createImageBitmap(file, { imageOrientation: 'none' });
-  }catch(e){
-    // fallback: cargar como <img> normal (último recurso)
-    src = await new Promise((resolve,reject)=>{
-      const rd=new FileReader();
-      rd.onload=ev=>{ const img=new Image(); try{img.style.imageOrientation='none';}catch(_){} img.onload=()=>resolve(img); img.onerror=reject; img.src=ev.target.result; };
-      rd.onerror=reject; rd.readAsDataURL(file);
-    });
-  }
-  let w = src.width, h = src.height;
-  if(Math.max(w,h) > maxDim){
-    const s = maxDim/Math.max(w,h);
-    w = Math.round(w*s); h = Math.round(h*s);
-  }
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  c.getContext('2d').drawImage(src, 0, 0, w, h);
+  const { src, rot } = await orientedSource(file);
+  const up = uprightCanvas(src, rot);
+  let w = up.width, h = up.height;
+  if(Math.max(w,h) > maxDim){ const s = maxDim/Math.max(w,h); w = Math.round(w*s); h = Math.round(h*s); }
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(up, 0, 0, w, h);
   return c.toDataURL('image/jpeg', quality);
 }
 
@@ -2194,7 +2254,7 @@ async function loadRoomFull(){
 function upsertRoomUser(row){
   if(!row || !row.profile_id || row.profile_id===me.id) return;
   if(row.night && row.night!==TODAY) return;
-  roomCache[row.profile_id] = { id:row.profile_id, name:row.name, age:row.age, gender:row.gender, photo:row.photo||'', zone:row.zone||'', groupCode:row.group_code||'', answers:row.answers||{} };
+  roomCache[row.profile_id] = { id:row.profile_id, name:row.name, age:row.age, gender:row.gender, photo:row.photo||'', zone:row.zone||'', groups:parseGroups(row.answers,row.group_code), groupCode:row.group_code||'', answers:row.answers||{} };
 }
 function roomList(){ return Object.values(roomCache); }
 async function getRoom(){ if(!roomLoaded) await loadRoomFull(); return roomList(); }
@@ -2510,144 +2570,188 @@ async function setZone(z){
   await publishMe();          // se propaga por tiempo real al resto
 }
 
-/* ════════ GRUPO DE AMIGOS ════════ */
+/* ════════ GRUPOS DE AMIGOS (puedes estar en varios a la vez) ════════ */
 const GROUP_CHARS   = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function genGroupCode(){ let s=''; for(let i=0;i<4;i++) s+=GROUP_CHARS[Math.floor(Math.random()*GROUP_CHARS.length)]; return s; }
-function myGroupMembers(){
-  if(!me || !me.groupCode) return [];
-  return Object.values(roomCache).filter(u=>u.groupCode===me.groupCode);
+
+/* Mis grupos (array). Compatible con datos antiguos de un solo grupo. */
+function myGroups(){ if(me && Array.isArray(me.groups)) return me.groups; return []; }
+function inGroup(code){ return myGroups().includes(code); }
+/* Miembros (de la sala) que pertenecen a un grupo concreto */
+function groupMembers(code){
+  if(!code) return [];
+  return Object.values(roomCache).filter(u => (u.groups||[]).includes(code));
+}
+/* ¿comparto algún grupo con esta persona? */
+function sharesGroupWithMe(u){
+  const mine = myGroups(); if(!mine.length) return false;
+  return (u.groups||[]).some(g => mine.includes(g));
 }
 
-/* Asegura que tengo un código de grupo (lo genera si no tengo). Lo necesito antes de invitar a alguien. */
-async function ensureMyGroupCode(){
+/* Crea un grupo nuevo y lo deja activo (NO sale de los demás) */
+async function addNewGroup(){
   if(!me) return null;
-  if(!me.groupCode){
-    me.groupCode = genGroupCode();
-    saveMeLocal();
-    await publishMe();
-    rtForId = null;        // forzar re-suscripción para incluir chat de grupo
-    setupRealtime();
-  }
-  return me.groupCode;
-}
-async function leaveGroup(){
-  if(!me || !me.groupCode) return;
-  if(!confirm('¿Salir del grupo?')) return;
-  me.groupCode = '';
+  let code = genGroupCode();
+  // evitar coincidir con uno que ya tenga
+  while(myGroups().includes(code)) code = genGroupCode();
+  me.groups = myGroups().concat([code]);
+  activeGroup = code;
   saveMeLocal();
   await publishMe();
-  rtForId = null; setupRealtime();
-  gChatCache = []; groupTab = 'invite';
+  return code;
+}
+/* Me uno a un grupo existente (por invitación) sin salir de los míos */
+async function joinGroup(code){
+  if(!me || !code) return;
+  if(!myGroups().includes(code)){ me.groups = myGroups().concat([code]); }
+  activeGroup = code;
+  saveMeLocal();
+  await publishMe();
+}
+async function leaveGroup(code){
+  code = code || activeGroup;
+  if(!me || !code) return;
+  if(!confirm('¿Salir de este grupo?')) return;
+  me.groups = myGroups().filter(g => g !== code);
+  delete unreadByGroup[code];
+  if(activeGroup === code) activeGroup = myGroups()[0] || null;
+  saveMeLocal();
+  await publishMe();
+  gChatCache = []; groupTab = myGroups().length ? groupTab : 'invite';
   lastMatchSig=''; refreshMatches();
   renderGroupScreen();
+  updateFab();
   toast('Has salido del grupo');
 }
 async function copyGroupCode(){
-  if(!me || !me.groupCode) return;
-  try{ await navigator.clipboard.writeText(me.groupCode); toast('Código copiado'); }
-  catch(e){ toast(me.groupCode); }
+  if(!activeGroup) return;
+  try{ await navigator.clipboard.writeText(activeGroup); toast('Código copiado'); }
+  catch(e){ toast(activeGroup); }
 }
 
-/* PANTALLA DE GRUPO: crea, invita, chatea */
+/* PANTALLA DE GRUPOS */
 let groupTab = 'invite';   // 'invite' | 'chat'
 let lastGChatSig = '';
+let activeGroup = null;        // grupo que se está viendo ahora
+let unreadByGroup = {};        // mensajes sin leer por grupo (en vivo)
 
 async function openGroupScreen(){
   chatReturn='screen-matches';
   await loadInvites();
-  if(!me.groupCode) groupTab = 'invite';
+  // Elegir grupo activo por defecto
+  if(!activeGroup || !inGroup(activeGroup)) activeGroup = myGroups()[0] || null;
+  if(!activeGroup) groupTab = 'invite';
   renderGroupScreen();
   show('screen-group');
-  // marcar mensajes vistos
-  if(me.groupCode){ me.gReads = me.gReads || {}; me.gReads[me.groupCode] = Date.now(); saveMeLocal(); }
+  if(activeGroup) markGroupRead(activeGroup);
 }
 function closeGroupScreen(){ show('screen-matches'); refreshMatches(); }
 
-async function createMyGroup(){
-  if(!me) return;
-  if(me.groupCode){ toast('Ya estás en un grupo'); return; }
-  await ensureMyGroupCode();
+function markGroupRead(code){
+  if(!code) return;
+  me.gReads = me.gReads || {}; me.gReads[code] = Date.now();
+  unreadByGroup[code] = 0;
+  saveMeLocal(); updateFab();
+}
+
+function setActiveGroup(code){
+  activeGroup = code;
   groupTab = 'invite';
   renderGroupScreen();
-  toast('Grupo creado: '+me.groupCode);
+  markGroupRead(code);
 }
-function setGroupTab(t){ groupTab = t; renderGroupScreen(); if(t==='chat'){ me.gReads=me.gReads||{}; me.gReads[me.groupCode]=Date.now(); saveMeLocal(); updateFab(); } }
+
+async function createMyGroup(){
+  if(!me) return;
+  const code = await addNewGroup();
+  groupTab = 'invite';
+  renderGroupScreen();
+  toast('Grupo creado: ' + code);
+}
+function setGroupTab(t){ groupTab = t; renderGroupScreen(); if(t==='chat' && activeGroup){ markGroupRead(activeGroup); } }
 
 function renderGroupScreen(){
   const cont = document.getElementById('groupContent');
   const tabsEl = document.getElementById('grTabs');
   const menuBtn = document.getElementById('groupChatMenuBtn');
   if(!cont || !tabsEl) return;
-  const inGroup = !!(me && me.groupCode);
+  const groups = myGroups();
+  const hasGroups = groups.length > 0;
+  if(activeGroup && !groups.includes(activeGroup)) activeGroup = groups[0] || null;
 
-  // Botón ⋮ solo cuando hay grupo Y estamos en la pestaña de chat
-  if(menuBtn) menuBtn.style.display = (inGroup && groupTab==='chat') ? 'block' : 'none';
+  // Botón ⋮ solo cuando hay grupo activo Y estamos en la pestaña de chat
+  if(menuBtn) menuBtn.style.display = (activeGroup && groupTab==='chat') ? 'block' : 'none';
   closeGroupChatMenu();
 
-  // Sin grupo → CTA "Crear grupo"
-  if(!inGroup){
+  // Sin ningún grupo → CTA "Crear grupo"
+  if(!hasGroups){
     tabsEl.style.display = 'none';
     cont.innerHTML = `
       <div class="gr-prompt">
         <h3>¿Has venido en grupo?</h3>
-        <p>Crea un grupo para invitar a las personas con las que vienes.<br>Podréis chatear entre vosotros y vuestros perfiles aparecerán marcados como "en grupo".</p>
+        <p>Crea un grupo para invitar a las personas con las que vienes.<br>Puedes estar en <b>varios grupos a la vez</b>, cada uno con su propio chat.</p>
       </div>
-      <button class="btn" onclick="createMyGroup()">Crear grupo</button>
+      <button class="btn" onclick="createMyGroup()">Crear un grupo</button>
       <div style="text-align:center;margin-top:14px;color:var(--muted);font-size:.85rem">O espera a que alguien te invite.</div>`;
     return;
   }
 
-  // Con grupo → tabs (Invitar | Chat)
+  // Barra de grupos (chips para cambiar entre ellos) + botón "nuevo"
+  let chips = groups.map(code=>{
+    const n = groupMembers(code).length + 1;            // +1 = yo
+    const u = unreadByGroup[code] || 0;
+    const badge = u>0 ? `<span class="gchip-badge">${u>9?'9+':u}</span>` : '';
+    return `<button class="gchip ${code===activeGroup?'on':''}" onclick="setActiveGroup('${code}')">${esc(code)} <span class="gchip-n">·${n}</span>${badge}</button>`;
+  }).join('');
+  chips += `<button class="gchip new" onclick="createMyGroup()">+ Nuevo</button>`;
+  let topBar = `<div class="gchips">${chips}</div>`;
+
+  // Tabs (Invitar | Chat) del grupo activo
   tabsEl.style.display = 'flex';
-  // calcular sin leer del chat de grupo
-  const unread = computeGroupUnread();
+  const unread = unreadByGroup[activeGroup] || 0;
   tabsEl.innerHTML = `
-    <button class="${groupTab==='invite'?'on':''}" onclick="setGroupTab('invite')">Invitar al grupo</button>
+    <button class="${groupTab==='invite'?'on':''}" onclick="setGroupTab('invite')">Invitar</button>
     <button class="${groupTab==='chat'?'on':''}" onclick="setGroupTab('chat')">Chat ${unread>0?`<span class="tab-badge">${unread>9?'9+':unread}</span>`:''}</button>
   `;
 
   if(groupTab === 'chat'){ renderGroupChat(); return; }
 
-  // TAB: INVITAR (con la cabecera de "Tu grupo")
-  const members = myGroupMembers();
+  // TAB: INVITAR (al grupo activo)
+  const members = groupMembers(activeGroup);
   const memberNames = members.map(u=>u.name).filter(Boolean);
   const room = Object.values(roomCache).filter(u=>!isBlocked(u.id));
-  const inMyGroup = room.filter(u=>u.groupCode && u.groupCode===me.groupCode);
-  const others    = room.filter(u=>!u.groupCode || u.groupCode!==me.groupCode);
+  const inThisGroup = room.filter(u => (u.groups||[]).includes(activeGroup));
+  const others      = room.filter(u => !(u.groups||[]).includes(activeGroup));
 
   function row(u, kind){
-    const av = u.photo ? `<img src="${u.photo}" onclick='event.stopPropagation();openLightbox(this.src)'>` : esc((u.name||'?').charAt(0).toUpperCase());
-    const bg = u.photo ? photoBg() : genderBg(u.gender);
+    const avh = avBox(u, '', true);
     let actionHtml='', cls='gr-person';
-    if(kind==='in-group'){ cls+=' in-group'; actionHtml = `<span class="stat" style="color:#ffd23f">En tu grupo ✓</span>`; }
+    if(kind==='in-group'){ cls+=' in-group'; actionHtml = `<span class="stat" style="color:#ffd23f">En este grupo ✓</span>`; }
     else if(kind==='pending'){ actionHtml = `<button class="gr-action-btn" disabled>Pendiente…</button>`; }
-    else if(kind==='busy'){ actionHtml = `<span class="stat">Ya en otro grupo</span>`; }
     else { actionHtml = `<button class="gr-action-btn primary" onclick='sendInvite(${JSON.stringify(u.id)})'>Invitar</button>`; }
     return `<div class="${cls}">
-      <div class="av" style="background:${bg}">${av}</div>
+      ${avh}
       <div class="body"><div class="nm">${esc(u.name||'')} <span class="age">· ${u.age||''}</span></div>${kind==='pending'?'<div class="stat">Esperando respuesta…</div>':''}</div>
       ${actionHtml}
     </div>`;
   }
 
-  let html = `
+  let html = topBar + `
     <div class="gr-mygroup">
-      <div class="ttl"><span>👥 Tu grupo · ${esc(me.groupCode)}</span><button class="leave-link" onclick="leaveGroup()">Salir</button></div>
+      <div class="ttl"><span>👥 Grupo · ${esc(activeGroup)}</span><button class="leave-link" onclick="leaveGroup('${activeGroup}')">Salir</button></div>
       <div class="names">${memberNames.length ? esc(memberNames.slice(0,5).join(', ') + (memberNames.length>5?` y ${memberNames.length-5} más`:'') + ', tú') : 'Solo tú de momento'}</div>
     </div>`;
 
-  if(inMyGroup.length){
-    html += `<div class="gr-section-title">Ya en tu grupo</div>`;
-    html += inMyGroup.map(u=>row(u,'in-group')).join('');
+  if(inThisGroup.length){
+    html += `<div class="gr-section-title">Ya en este grupo</div>`;
+    html += inThisGroup.map(u=>row(u,'in-group')).join('');
   }
   if(others.length){
     html += `<div class="gr-section-title">Personas conectadas</div>`;
     html += others.map(u=>{
-      const pending = invitesSent.has(u.id);
-      const busyOther = u.groupCode && u.groupCode !== (me.groupCode||'');
+      const pending = invitesSent.has(activeGroup+'|'+u.id);
       if(pending) return row(u,'pending');
-      if(busyOther) return row(u,'busy');
-      return row(u,'invite');
+      return row(u,'invite');     // se puede invitar aunque esté en otros grupos
     }).join('');
   } else {
     html += `<div class="empty" style="padding:30px 10px"><div class="e-ico">🕺</div><div>Aún no hay nadie más conectado.</div></div>`;
@@ -2658,23 +2762,21 @@ function renderGroupScreen(){
 /* CHAT DE GRUPO (UI + render + envío + foto) */
 let gChatCache = [];
 async function renderGroupChat(){
-  const cont = document.getElementById('groupContent'); if(!cont) return;
-  gChatCache = await DB.groupMessages();
+  const cont = document.getElementById('groupContent'); if(!cont || !activeGroup) return;
+  gChatCache = await DB.groupMessages(activeGroup);
   const sig = gChatCache.length + '|' + (gChatCache.length?gChatCache[gChatCache.length-1].ts:0);
-  // si solo es el render inicial sin contenido o cambió, re-pintamos todo (es un chat, no list muy grande)
   cont.innerHTML = `
     <div class="gchat-wrap">
       <div class="gchat-msgs" id="gchatMsgs"></div>
       <div class="gchat-input">
-        <input class="input" id="gchatInput" placeholder="Escribe al grupo…" autocomplete="off"
+        <input class="input" id="gchatInput" placeholder="Escribe al grupo ${esc(activeGroup)}…" autocomplete="off"
                onkeydown="if(event.key==='Enter')sendGroupMessage()">
         <button class="send" onclick="sendGroupMessage()">➤</button>
       </div>
     </div>`;
   paintGroupChat();
   lastGChatSig = sig;
-  // marcar leído
-  me.gReads = me.gReads || {}; me.gReads[me.groupCode] = Date.now(); saveMeLocal(); updateFab();
+  markGroupRead(activeGroup);
 }
 
 function paintGroupChat(){
@@ -2717,30 +2819,30 @@ function renderGroupBubbleInner(m){
 }
 
 async function sendGroupMessage(){
-  const inp = document.getElementById('gchatInput'); if(!inp) return;
+  const inp = document.getElementById('gchatInput'); if(!inp || !activeGroup) return;
   const text = inp.value.trim(); if(!text) return;
   inp.value=''; inp.focus();
-  const ok = await DB.sendGroupMsg(text);
+  const ok = await DB.sendGroupMsg(text, activeGroup);
   if(!ok){ toast('No se pudo enviar'); return; }
-  // refresco optimista mientras llega el realtime
   gChatCache.push({id:'tmp'+Date.now(), from:me.id, text, ts:Date.now()});
   paintGroupChat();
   inp.focus();
 }
 
-/* Compartir perfil al chat del grupo (desde la lista de afines) */
+/* Compartir perfil al chat del grupo activo (desde la lista de afines) */
 async function shareToGroup(profileId){
   if(!me){ return; }
-  if(!me.groupCode){
+  if(!myGroups().length){
     toast('Crea un grupo o únete a uno primero');
     show('screen-group'); openGroupScreen();
     return;
   }
+  if(!activeGroup) activeGroup = myGroups()[0];
   const u = roomCache[profileId]; if(!u){ toast('Perfil no encontrado'); return; }
   const payload = { id:u.id, name:u.name, age:u.age, gender:u.gender, photo:u.photo||'' };
-  const ok = await DB.sendGroupMsg('__share__' + JSON.stringify(payload));
+  const ok = await DB.sendGroupMsg('__share__' + JSON.stringify(payload), activeGroup);
   if(ok){
-    toast('Compartido con tu grupo');
+    toast('Compartido con el grupo ' + activeGroup);
   } else { toast('No se pudo compartir'); }
 }
 
@@ -2763,25 +2865,24 @@ document.addEventListener('click', (e)=>{
 
 /* ════════ PICKER PARA COMPARTIR PERFIL AL GRUPO ════════ */
 function openSharePicker(){
-  if(!me || !me.groupCode){ toast('Necesitas estar en un grupo'); return; }
+  if(!me || !myGroups().length){ toast('Necesitas estar en un grupo'); return; }
+  if(!activeGroup) activeGroup = myGroups()[0];
   const list = document.getElementById('sharePickerList');
   const overlay = document.getElementById('sharePicker');
   if(!list || !overlay) return;
 
-  // candidatos: gente conectada, no yo, no bloqueada, y que NO esté ya en mi grupo
+  // candidatos: gente conectada, no yo, no bloqueada, y que NO esté ya en el grupo activo
   const candidates = Object.values(roomCache).filter(u =>
-    u.id !== me.id && !isBlocked(u.id) && u.groupCode !== me.groupCode
+    u.id !== me.id && !isBlocked(u.id) && !(u.groups||[]).includes(activeGroup)
   ).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
 
   if(!candidates.length){
     list.innerHTML = `<div class="empty" style="padding:30px 10px"><div class="e-ico">🕺</div><div>No hay nadie más conectado para compartir.</div></div>`;
   } else {
     list.innerHTML = candidates.map(u=>{
-      const av = u.photo ? `<img src="${u.photo}">` : esc((u.name||'?').charAt(0).toUpperCase());
-      const bg = u.photo ? '#000' : genderBg(u.gender);
-      const info = (u.age?(u.age+' años'):'') + (u.gender?(' · '+esc(u.gender)):'') + (u.groupCode?' · en grupo':'');
+      const info = (u.age?(u.age+' años'):'') + (u.gender?(' · '+esc(u.gender)):'') + ((u.groups||[]).length?' · en grupo':'');
       return `<div class="sp-row" onclick='pickAndShare("${u.id}")'>
-        <div class="av" style="background:${bg}">${av}</div>
+        ${avBox(u,'',false)}
         <div class="body"><div class="nm">${esc(u.name||'')}</div><div class="info">${info}</div></div>
         <div class="ico">↗</div>
       </div>`;
@@ -2793,18 +2894,26 @@ function closeSharePicker(){ const o=document.getElementById('sharePicker'); if(
 async function pickAndShare(id){
   await shareToGroup(id);
   closeSharePicker();
-  // si estoy en grupo→chat, refresco para ver mi mensaje compartido al instante
   const cur=document.querySelector('.screen.on');
-  if(cur && cur.id==='screen-group' && groupTab==='chat'){
-    gChatCache = await DB.groupMessages(); paintGroupChat();
+  if(cur && cur.id==='screen-group' && groupTab==='chat' && activeGroup){
+    gChatCache = await DB.groupMessages(activeGroup); paintGroupChat();
   }
 }
 
-/* Calcula no leídos en el chat de grupo (para badge del tab y del FAB) */
-function computeGroupUnread(){
-  if(!me || !me.groupCode || !gChatCache.length) return 0;
-  const last = (me.gReads && me.gReads[me.groupCode]) || 0;
-  return gChatCache.filter(m => m.from !== me.id && m.ts > last).length;
+/* No leídos totales en todos mis grupos (para el badge del FAB) */
+function totalGroupUnread(){
+  let t=0; for(const c of myGroups()) t += (unreadByGroup[c]||0); return t;
+}
+/* Recalcula los no leídos de cada grupo (al abrir la app/afines) */
+async function refreshGroupsUnread(){
+  if(!me) return;
+  for(const code of myGroups()){
+    try{
+      const msgs = await DB.groupMessages(code);
+      const last = (me.gReads && me.gReads[code]) || 0;
+      unreadByGroup[code] = msgs.filter(m => m.from !== me.id && m.ts > last).length;
+    }catch(e){}
+  }
 }
 
 /* ════════ INVITACIONES ════════ */
@@ -2817,8 +2926,8 @@ async function loadInvites(){
   invitesSent.clear();
   let firstPending=null;
   for(const inv of all){
-    if(inv.from_id===me.id && inv.status==='pending') invitesSent.add(inv.to_id);
-    if(inv.to_id===me.id && inv.status==='pending' && !isBlocked(inv.from_id)){
+    if(inv.from_id===me.id && inv.status==='pending') invitesSent.add((inv.group_code||'')+'|'+inv.to_id);
+    if(inv.to_id===me.id && inv.status==='pending' && !isBlocked(inv.from_id) && !inGroup(inv.group_code)){
       if(!firstPending) firstPending=inv;
       else inviteQueue.push(inv);
     }
@@ -2829,16 +2938,18 @@ async function loadInvites(){
 async function sendInvite(otherId){
   if(!me || !otherId) return;
   if(isBlocked(otherId)){ toast('No puedes invitar a esta persona'); return; }
-  await ensureMyGroupCode();
-  invitesSent.add(otherId);                 // optimista
-  const res = await DB.addInvite(otherId, me.groupCode);
+  if(!activeGroup){ activeGroup = await addNewGroup(); }   // si no hay grupo activo, crea uno
+  const code = activeGroup;
+  const key = code+'|'+otherId;
+  invitesSent.add(key);                 // optimista (por grupo)
+  const res = await DB.addInvite(otherId, code);
   if(!res || res.ok !== true){
-    invitesSent.delete(otherId);
+    invitesSent.delete(key);
     const why = (res && res.err) ? res.err : 'desconocido';
     toast('No se pudo invitar: ' + why);
     console.warn('Invite error detallado:', res);
   } else {
-    toast('Invitación enviada');
+    toast('Invitación enviada al grupo ' + code);
   }
   renderGroupScreen();
 }
@@ -2863,13 +2974,9 @@ function hideIncomingInvite(){
 async function acceptCurrentInvite(){
   const inv = currentIncomingInvite; if(!inv) return;
   await DB.updateInviteStatus(inv.id, 'accepted');
-  me.groupCode = inv.group_code;
-  saveMeLocal();
-  await publishMe();
-  rtForId = null;            // forzar re-suscripción para el nuevo grupo
-  setupRealtime();
+  await joinGroup(inv.group_code);     // se UNE sin salir de sus otros grupos
   hideIncomingInvite();
-  toast('Te has unido al grupo');
+  toast('Te has unido al grupo ' + (inv.group_code||''));
   lastMatchSig=''; refreshMatches();
 }
 async function rejectCurrentInvite(){
@@ -2882,28 +2989,28 @@ async function onInviteReceived(row){
   if(!row || row.to_id!==me.id) return;
   if(row.status!=='pending') return;
   if(isBlocked(row.from_id)) return;
+  if(inGroup(row.group_code)) return;       // ya estoy en ese grupo
   if(currentIncomingInvite){ inviteQueue.push(row); return; }
   showIncomingInvite(row);
 }
 async function onInviteUpdated(row){
   if(!row) return;
   if(row.from_id===me.id){
-    if(row.status!=='pending') invitesSent.delete(row.to_id);
+    if(row.status!=='pending') invitesSent.delete((row.group_code||'')+'|'+row.to_id);
     renderGroupScreen();
     if(row.status==='accepted'){
       const u = roomCache[row.to_id];
-      if(u) toast(`${u.name||'Tu amigo/a'} se ha unido a tu grupo`);
+      if(u) toast(`${u.name||'Tu amigo/a'} se ha unido al grupo`);
     }
   }
 }
 
 function updateGroupVisuals(){
-  const mine = (me && me.groupCode) || '';
   document.querySelectorAll('#matchList .match[data-id]').forEach(card=>{
     const u = roomCache[card.getAttribute('data-id')]; if(!u) return;
     const pill = card.querySelector('[data-group-pill]'); if(!pill) return;
-    if(u.groupCode){
-      const same = u.groupCode === mine;
+    if((u.groups||[]).length){
+      const same = sharesGroupWithMe(u);
       pill.className = 'group-pill' + (same?' mine':'');
       pill.textContent = 'En grupo';
       pill.setAttribute('data-group-pill','');
@@ -2912,7 +3019,6 @@ function updateGroupVisuals(){
       pill.textContent = '';
       pill.setAttribute('data-group-pill','');
     }
-    // texto edad: sin "en grupo" inline
     const ageEl = card.querySelector('.age');
     if(ageEl){ ageEl.textContent = `· ${u.age||''}`; }
   });
@@ -2926,7 +3032,7 @@ async function openMatches(){
   renderZoneChips();
   updateNotifBanner();
   await loadLikes(); await loadBlocks(); await loadInvites();
-  if(me && me.groupCode){ gChatCache = await DB.groupMessages(); }
+  await refreshGroupsUnread();
   show('screen-matches'); refreshMatches();
   runPendingNotifRoute();                  // 🎯 si llegamos aquí desde una notificación
 }
@@ -3082,7 +3188,7 @@ async function refreshMatches(force){
   const filtersSig = 'F'+[...activeFilters.estado].join('|')+'/'+[...activeFilters.estilo].join('|')+'/'+[...activeFilters.despues].join('|');
   const peopleSig = list.map(x=>{
     const u=x.u;
-    return u.id+':'+((u.photo||'').length)+':'+(u.name||'')+':'+(u.age||'')+':'+(u.zone||'')+':'+(u.groupCode||'')+':'+x.a.pct;
+    return u.id+':'+((u.photo||'').length)+':'+(u.name||'')+':'+(u.age||'')+':'+(u.zone||'')+':'+((u.groups||[]).join('-'))+':'+x.a.pct;
   }).join(',');
   const sig = genderFilter+'|'+peopleSig+'|B'+[...blocks.byMe,'>',...blocks.fromOthers].join(',')+'|'+filtersSig;
   if(sig===lastMatchSig && !force){
@@ -3111,8 +3217,8 @@ async function refreshMatches(force){
     const isMutual = iLiked && theyLiked;
     const fresh = prev.has(u.id) ? '' : 'fresh';   // animación SOLO si es nuevo
     const zoneTag = u.zone ? `<span class="zone-tag" data-zone-tag>📍 ${esc(u.zone)}</span>` : '<span data-zone-tag></span>';
-    const sameG = u.groupCode && me.groupCode && u.groupCode===me.groupCode;
-    const groupPill = u.groupCode ? `<span class="group-pill${sameG?' mine':''}" data-group-pill>En grupo</span>` : '<span data-group-pill></span>';
+    const sameG = sharesGroupWithMe(u);
+    const groupPill = (u.groups||[]).length ? `<span class="group-pill${sameG?' mine':''}" data-group-pill>En grupo</span>` : '<span data-group-pill></span>';
     const onlineSpan = `<span data-online></span>`;
     const likeTag = isMutual
       ? '<span class="likes-you-tag mutual">💞 Os gustáis</span>'
@@ -3288,7 +3394,7 @@ async function updateFab(){
     if(ok) groupFab.classList.add('show'); else groupFab.classList.remove('show');
     const gb=document.getElementById('groupFabBadge');
     const pendings = inviteQueue.length + (currentIncomingInvite?1:0);
-    const unreadGroup = computeGroupUnread();
+    const unreadGroup = totalGroupUnread();
     const total = pendings + unreadGroup;
     if(total>0){ gb.style.display='flex'; gb.textContent=total>9?'9+':total; } else gb.style.display='none';
   }
@@ -3342,12 +3448,11 @@ function setupRealtime(){
     { event:'UPDATE', schema:'public', table:'party_invites', filter:'from_id=eq.'+me.id },
     (p)=>onInviteUpdated(p && p.new));
 
-  // 👥 Chat de grupo (si pertenezco a uno)
-  if(me.groupCode){
-    rtChannel.on('postgres_changes',
-      { event:'INSERT', schema:'public', table:'party_group_messages', filter:'group_code=eq.'+me.groupCode },
-      (p)=>onGroupMessage(p && p.new));
-  }
+  // 👥 Chat de grupo: escuchamos TODOS los mensajes de la fiesta y filtramos
+  // en onGroupMessage por los grupos a los que pertenezco (puedo estar en varios).
+  rtChannel.on('postgres_changes',
+    { event:'INSERT', schema:'public', table:'party_group_messages', filter:'party_code=eq.'+PARTY_CODE },
+    (p)=>onGroupMessage(p && p.new));
 
   rtChannel.subscribe((status)=>{
     REALTIME_OK = (status==='SUBSCRIBED');
@@ -3355,18 +3460,18 @@ function setupRealtime(){
 }
 
 async function onGroupMessage(row){
-  if(!row || !me || !me.groupCode || row.group_code !== me.groupCode) return;
+  if(!row || !me) return;
+  const code = row.group_code;
+  if(!inGroup(code)) return;                 // mensaje de un grupo que no es mío → ignorar
   const cur = document.querySelector('.screen.on');
-  const inGroupChat = cur && cur.id==='screen-group' && groupTab==='chat';
-  // refresca cache + UI si está abierto el chat
-  if(inGroupChat){
-    gChatCache = await DB.groupMessages();
+  const viewingThis = cur && cur.id==='screen-group' && groupTab==='chat' && activeGroup===code;
+  if(viewingThis){
+    gChatCache = await DB.groupMessages(code);
     paintGroupChat();
-    me.gReads = me.gReads || {}; me.gReads[me.groupCode] = Date.now(); saveMeLocal();
+    markGroupRead(code);
   } else {
-    // marcar como pendiente para el badge del FAB
-    gChatCache.push({id:row.id, from:row.from_id, text:row.content, ts:new Date(row.created_at).getTime()});
-    if(cur && cur.id==='screen-group') renderGroupScreen();   // refrescar contador del tab
+    if(row.from_id !== me.id){ unreadByGroup[code] = (unreadByGroup[code]||0) + 1; }
+    if(cur && cur.id==='screen-group') renderGroupScreen();   // refrescar chips/contadores
     updateFab();
   }
   if(row.from_id !== me.id){
@@ -3377,7 +3482,7 @@ async function onGroupMessage(row){
       const isShare = typeof row.content==='string' && row.content.startsWith('__share__');
       const body = isShare ? 'Ha compartido un perfil con el grupo' :
                    (isImageMsg(row.content) ? '📷 Foto' : (row.content||'').slice(0,80));
-      pushNotify(`👥 ${fromName} (grupo)`, body, 'gmsg-'+(row.id||Date.now()), {kind:'group_message', fromId: row.from_id});
+      pushNotify(`👥 ${fromName} (grupo ${code})`, body, 'gmsg-'+(row.id||Date.now()), {kind:'group_message', fromId: row.from_id});
     }
   }
 }
@@ -3474,7 +3579,7 @@ Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick
   toggleChatMenu,blockCurrent,blockUser,unblockUser,
   leaveGroup,copyGroupCode,
   openMyProfile,closeMyProfile,saveMyProfile,setMyGender,zoomMyPhoto,
-  openGroupScreen,closeGroupScreen,sendInvite,acceptCurrentInvite,rejectCurrentInvite,
+  openGroupScreen,closeGroupScreen,sendInvite,acceptCurrentInvite,rejectCurrentInvite,setActiveGroup,
   requestNotifPerm,dismissNotifBanner,toggleNotifs,
   skipQuestionsTest,createMyGroup,setGroupTab,sendGroupMessage,shareToGroup,
   toggleGroupChatMenu,groupMenuAddPeople,groupMenuSharePerfil,openSharePicker,closeSharePicker,pickAndShare,
