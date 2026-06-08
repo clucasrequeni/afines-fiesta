@@ -1992,10 +1992,12 @@ document.getElementById('inPhoto').addEventListener('change', async function(){
 function clearPhoto(){ if(me) me.photo=''; document.getElementById('photoPrev').innerHTML='📸'; document.getElementById('photoClear').style.display='none'; document.getElementById('inPhoto').value=''; }
 
 /* ════════ FOTOS DE PERFIL (grande + miniatura) ════════ */
+/* imageOrientation:'none' → muestra los píxeles TAL CUAL están en el archivo,
+   sin girar ni espejar. La foto sale como se ve en la cámara. */
 async function loadImageSrc(file){
-  try{ return await createImageBitmap(file, { imageOrientation:'from-image' }); }
+  try{ return await createImageBitmap(file, { imageOrientation:'none' }); }
   catch(e){
-    return await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>{const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=ev.target.result;}; r.onerror=rej; r.readAsDataURL(file); });
+    return await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>{const img=new Image(); try{img.style.imageOrientation='none';}catch(_){} img.onload=()=>res(img); img.onerror=rej; img.src=ev.target.result;}; r.onerror=rej; r.readAsDataURL(file); });
   }
 }
 function squareDataURL(src, size, quality){
@@ -2024,17 +2026,16 @@ async function setProfilePhoto(file, previewEl){
 }
 
 /* comprimir imagen para enviarla en el chat */
-/* Comprimir imagen respetando la orientación EXIF (importante para iPhone) */
+/* imageOrientation:'none' → tal cual la cámara, sin girar ni espejar */
 async function compressImage(file, maxDim, quality){
   let src;
   try{
-    // createImageBitmap aplica EXIF automáticamente con imageOrientation:'from-image'
-    src = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    src = await createImageBitmap(file, { imageOrientation: 'none' });
   }catch(e){
-    // fallback: cargar como <img> normal (sin EXIF, último recurso)
+    // fallback: cargar como <img> normal (último recurso)
     src = await new Promise((resolve,reject)=>{
       const rd=new FileReader();
-      rd.onload=ev=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=ev.target.result; };
+      rd.onload=ev=>{ const img=new Image(); try{img.style.imageOrientation='none';}catch(_){} img.onload=()=>resolve(img); img.onerror=reject; img.src=ev.target.result; };
       rd.onerror=reject; rd.readAsDataURL(file);
     });
   }
@@ -3076,9 +3077,14 @@ async function refreshMatches(force){
   const visible = room.filter(u=>!isBlocked(u.id)).length + 1;
   document.getElementById('roomMeta').innerHTML=`En <b>${esc(VENUE_NAME||'tu fiesta')}</b> · <b>${visible}</b> personas conectadas`;
 
-  // FIRMA con quién está + bloqueos + filtros activos (para que la lista se repinte si cambian)
+  // FIRMA con quién está + sus datos visibles (foto/nombre/edad/zona) + bloqueos + filtros
+  // Incluir la foto es CLAVE: si alguien sube su foto después, la lista debe repintarse.
   const filtersSig = 'F'+[...activeFilters.estado].join('|')+'/'+[...activeFilters.estilo].join('|')+'/'+[...activeFilters.despues].join('|');
-  const sig = genderFilter+'|'+list.map(x=>x.u.id).join(',')+'|B'+[...blocks.byMe,'>',...blocks.fromOthers].join(',')+'|'+filtersSig;
+  const peopleSig = list.map(x=>{
+    const u=x.u;
+    return u.id+':'+((u.photo||'').length)+':'+(u.name||'')+':'+(u.age||'')+':'+(u.zone||'')+':'+(u.groupCode||'')+':'+x.a.pct;
+  }).join(',');
+  const sig = genderFilter+'|'+peopleSig+'|B'+[...blocks.byMe,'>',...blocks.fromOthers].join(',')+'|'+filtersSig;
   if(sig===lastMatchSig && !force){
     updateLikeVisuals();
     updatePresenceVisuals();
@@ -3254,7 +3260,7 @@ async function myConvs(){
 async function openInbox(){ chatReturn='screen-inbox'; lastInboxSig=''; show('screen-inbox'); renderInbox(); }
 async function renderInbox(){
   const convs=await myConvs(), map=await getRoomMap(), cont=document.getElementById('inboxList');
-  const sig = convs.map(c=>c.other+':'+c.unread+':'+(c.last?c.last.ts:0)).join(',');
+  const sig = convs.map(c=>{ const u=map[c.other]||{}; return c.other+':'+c.unread+':'+(c.last?c.last.ts:0)+':'+((u.photo||'').length)+':'+(u.name||''); }).join(',');
   if(sig===lastInboxSig) return;
   lastInboxSig = sig;
   if(!convs.length){ cont.innerHTML=`<div class="empty"><div class="e-ico">💬</div><div>Aún no tienes chats.</div><div style="margin-top:6px;font-size:.85rem">Abre a alguien desde "Afines" y escríbele.</div></div>`; return; }
