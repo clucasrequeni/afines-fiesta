@@ -55,12 +55,14 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .btn.danger-ghost{background:transparent;border:1.5px solid rgba(255,90,90,.5);color:#ff7a7a;box-shadow:none}
 .btn.danger-ghost:hover{background:rgba(255,90,90,.12);border-color:#ff5a5a;color:#ff5a5a}
 /* Pie de redes sociales (abajo del todo de varias pantallas) */
-.social-footer{display:flex;justify-content:center;align-items:center;gap:22px;margin-top:auto;padding:30px 0 6px}
+.social-footer{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:auto;padding:30px 0 6px}
+.social-icons{display:flex;justify-content:center;align-items:center;gap:22px}
 .social-footer .lbl{display:block;width:100%;text-align:center;color:var(--muted);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
 .social-btn{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--card-line);background:var(--card);color:var(--ink);transition:transform .16s,border-color .16s,color .16s;text-decoration:none}
 .social-btn:hover{border-color:var(--pink);color:var(--pink);transform:translateY(-2px)}
 .social-btn:active{transform:scale(.92)}
 .social-btn svg{width:30px;height:30px;fill:currentColor;display:block}
+.welcome-tagline{margin-top:16px;color:var(--muted);font-size:.9rem;font-style:italic;text-align:center;max-width:300px;line-height:1.4}
 .btn.sm{width:auto;padding:12px 22px;font-size:.92rem}
 .linklike{background:none;border:none;color:var(--muted);font-family:inherit;font-size:.86rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .linklike:hover{color:var(--cyan)}
@@ -377,6 +379,33 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .pc-name{font-family:'Unbounded',sans-serif;font-weight:600;font-size:1.3rem;padding:16px 20px 0}
 .pc-bio{padding:8px 20px 22px;color:var(--muted);font-size:.98rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}
 .pc-bio.empty{font-style:italic;opacity:.6}
+.pc-report{display:block;width:calc(100% - 40px);margin:0 20px 18px;padding:11px;border:1.5px solid rgba(255,90,90,.4);background:transparent;color:#ff8a8a;border-radius:12px;font-family:inherit;font-size:.9rem;cursor:pointer}
+.pc-report:hover{background:rgba(255,90,90,.1);border-color:#ff5a5a;color:#ff5a5a}
+/* Reportar */
+#reportOverlay,#privacyOverlay{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:22px;animation:fade .2s both}
+#reportOverlay.on,#privacyOverlay.on{display:flex}
+.ro-bg,.pv-bg{position:absolute;inset:0;background:rgba(6,4,12,.92);backdrop-filter:blur(10px)}
+.ro-card,.pv-card{position:relative;z-index:1;width:100%;max-width:360px;background:#140e26;border:1px solid var(--card-line);border-radius:22px;padding:24px 22px;box-shadow:0 28px 80px rgba(0,0,0,.6);animation:lbpop .28s cubic-bezier(.2,.8,.3,1.15) both}
+.ro-title{font-family:'Unbounded',sans-serif;font-weight:600;font-size:1.2rem;margin-bottom:6px}
+.ro-title span{color:var(--pink)}
+.ro-sub{color:var(--muted);font-size:.9rem;line-height:1.45;margin-bottom:18px}
+.ro-reasons{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
+.ro-reasons button{width:100%;text-align:left;padding:14px 16px;border-radius:13px;border:1.5px solid var(--card-line);background:var(--card);color:var(--ink);font-family:inherit;font-size:.96rem;cursor:pointer;transition:.14s}
+.ro-reasons button:hover{border-color:var(--pink);background:rgba(255,46,139,.08)}
+.ro-cancel{width:100%;padding:12px;border:none;background:none;color:var(--muted);font-family:inherit;font-size:.92rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+/* Privacidad */
+.pv-card{max-width:380px}
+.pv-title{font-family:'Unbounded',sans-serif;font-weight:600;font-size:1.3rem;margin-bottom:14px}
+.pv-body p{font-size:.95rem;line-height:1.5;margin-bottom:12px;color:var(--ink)}
+.pv-body p:last-child{margin-bottom:0}
+.pv-body b{color:var(--cyan)}
+/* Enlace de privacidad bajo las redes */
+.privacy-link{display:block;width:100%;text-align:center;background:none;border:none;color:var(--muted);font-family:inherit;font-size:.78rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px;margin-top:14px}
+.privacy-link:hover{color:var(--cyan)}
+/* Insignia "verificada" y "acaba de llegar" */
+.vbadge{display:inline-flex;align-items:center;justify-content:center;gap:3px;color:var(--cyan);font-size:.82rem;font-weight:700;margin-left:5px}
+.fresharrival{display:inline-block;background:linear-gradient(105deg,var(--cyan),#3a8cff);color:#04121a;font-size:.66rem;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.03em;margin-left:6px;vertical-align:middle}
+.av .av-check{position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:50%;background:var(--cyan);color:#04121a;font-size:.7rem;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
 
 /* FAB chats */
 #fab{position:fixed;bottom:20px;right:max(18px,calc(50vw - 240px + 18px));width:60px;height:60px;border-radius:50%;background:var(--grad);box-shadow:0 12px 30px rgba(255,46,139,.45);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:40;border:none;font-size:1.5rem}
@@ -427,6 +456,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 #screen-myprofile .topbar-edit{display:flex;align-items:center;gap:10px;margin-bottom:18px}
 #screen-myprofile .topbar-edit .ttl{font-family:'Unbounded',sans-serif;font-weight:700;font-size:1.1rem;flex:1;text-align:center}
 .profile-photo-row{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:24px}
+.verify-state{text-align:center;min-height:18px}
+.verify-hint{color:var(--muted);font-size:.78rem;line-height:1.4;max-width:260px;display:inline-block}
 .profile-photo-big{width:120px;height:120px;border-radius:50%;background:var(--grad-soft);border:2px solid rgba(255,46,139,.35);display:flex;align-items:center;justify-content:center;font-size:2.6rem;overflow:hidden;cursor:zoom-in}
 .profile-photo-big img{width:100%;height:100%;object-fit:cover}
 
@@ -664,6 +695,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       <div class="venue" id="venueName">—</div>
     </div>
     <button class="btn" id="welcomeBtn" onclick="goConsent()">Entrar</button>
+    <div class="welcome-tagline">Lo que pasa esta noche se queda en esta noche</div>
     <div class="social-footer" data-social></div>
   </section>
 
@@ -796,6 +828,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       <div class="chat-name" id="chatName"></div>
       <button class="chat-menu-btn" onclick="toggleChatMenu(event)" aria-label="Menú">⋮</button>
       <div class="chat-menu" id="chatMenu">
+        <button onclick="reportCurrent()">🚩 Reportar</button>
         <button onclick="blockCurrent()">🚫 Bloquear a esta persona</button>
       </div>
     </div>
@@ -819,8 +852,13 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     </div>
     <div class="profile-photo-row">
       <div class="profile-photo-big" id="myPhotoBig" onclick="zoomMyPhoto()">📸</div>
-      <button class="btn ghost sm" onclick="document.getElementById('myPhotoInput').click()">Cambiar foto</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <button class="btn ghost sm" onclick="document.getElementById('myPhotoInput').click()">Cambiar foto</button>
+        <button class="btn ghost sm" onclick="document.getElementById('myVerifyInput').click()">✓ Verificar (foto ahora)</button>
+      </div>
+      <div class="verify-state" id="verifyState"></div>
       <input type="file" id="myPhotoInput" accept="image/*" style="display:none">
+      <input type="file" id="myVerifyInput" accept="image/*" capture="user" style="display:none">
     </div>
     <div class="field">
       <label>Tu nombre</label>
@@ -982,6 +1020,40 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     <div class="pc-photo" id="pcPhoto"></div>
     <div class="pc-name" id="pcName"></div>
     <div class="pc-bio" id="pcBio"></div>
+    <button class="pc-report" id="pcReport" onclick="reportFromCard()">🚩 Reportar</button>
+  </div>
+</div>
+
+<!-- REPORTAR -->
+<div id="reportOverlay" onclick="if(event.target.id==='reportOverlay'||event.target.classList.contains('ro-bg'))closeReport()">
+  <div class="ro-bg"></div>
+  <div class="ro-card">
+    <div class="ro-title">Reportar a <span id="reportName">esta persona</span></div>
+    <div class="ro-sub">Cuéntanos qué pasa. Dejarás de ver a esta persona y avisarás al equipo. Es anónimo.</div>
+    <div class="ro-reasons" id="reportReasons">
+      <button onclick="submitReport('Comportamiento inapropiado')">Comportamiento inapropiado</button>
+      <button onclick="submitReport('Acoso o mensajes molestos')">Acoso o mensajes molestos</button>
+      <button onclick="submitReport('Perfil o foto falsos')">Perfil o foto falsos</button>
+      <button onclick="submitReport('Contenido sexual no deseado')">Contenido sexual no deseado</button>
+      <button onclick="submitReport('Otro motivo')">Otro motivo</button>
+    </div>
+    <button class="ro-cancel" onclick="closeReport()">Cancelar</button>
+  </div>
+</div>
+
+<!-- PRIVACIDAD -->
+<div id="privacyOverlay" onclick="if(event.target.id==='privacyOverlay'||event.target.classList.contains('pv-bg'))closePrivacy()">
+  <div class="pv-bg"></div>
+  <div class="pv-card">
+    <button class="pc-close" onclick="closePrivacy()" aria-label="Cerrar">✕</button>
+    <div class="pv-title">Privacidad</div>
+    <div class="pv-body">
+      <p><b>Todo se borra cada noche.</b> Tu nombre, edad, foto, respuestas y chats existen solo durante la fiesta y se eliminan automáticamente. No hay perfiles permanentes ni historial.</p>
+      <p>Tu foto y tu perfil son <b>visibles para las demás personas que están esta noche en el mismo local</b>. No los compartas si no quieres que te vean.</p>
+      <p>No pedimos correo, teléfono ni contraseña. No vendemos datos.</p>
+      <p>La app es <b>solo para mayores de 18 años</b>.</p>
+      <p style="color:var(--muted)">Lo que pasa esta noche, se queda en esta noche.</p>
+    </div>
   </div>
 </div>
 
@@ -1288,6 +1360,20 @@ const DB = {
       return out;
     }
   },
+  /* 🚩 REPORTES (se guardan para que el equipo los revise) */
+  async addReport(toId, reason){
+    if(SB_READY){
+      const { error } = await sb.from('party_reports').insert({
+        party_code:PARTY_CODE, night:TODAY, from_id:me.id, to_id:toId, reason:reason||''
+      });
+      if(error){ console.warn('[SB addReport]', error.message); return false; }
+      return true;
+    } else {
+      const k = `fiesta:${PARTY_CODE}:report:${me.id}__${toId}__${Date.now()}`;
+      await Store.set(k, JSON.stringify({from:me.id,to:toId,reason:reason||'',day:TODAY,ts:Date.now()}), true);
+      return true;
+    }
+  },
   /* ❤ LIKES */
   async addLike(toId){
     if(SB_READY){
@@ -1524,6 +1610,14 @@ function thumbURL(photo){
 /* La descripción/bio se guarda dentro de answers bajo una clave reservada,
    así no hace falta cambiar la base de datos. */
 function bioOf(u){ return (u && u.answers && u.answers._bio) ? u.answers._bio : ''; }
+/* ✓ Foto verificada (hecha con la cámara en el momento) */
+function isVerified(u){ return !!(u && u.answers && u.answers._verified); }
+/* ✨ Acaba de llegar: se unió hace menos de 15 minutos */
+const FRESH_MS = 15*60*1000;
+function isFreshArrival(u){
+  const j = u && u.answers && u.answers._joined;
+  return j && (Date.now() - j) < FRESH_MS;
+}
 
 /* Si una foto (miniatura) falla al cargar, probamos la foto grande; si esa
    también falla, mostramos la inicial sobre el color del avatar. */
@@ -1543,30 +1637,37 @@ function avBox(u, extraClass, clickable){
   const ini = esc((u.name||'?').charAt(0).toUpperCase());
   const fbg = genderBg(u.gender);
   const cls = 'av' + (extraClass ? (' '+extraClass) : '');
+  const check = isVerified(u) ? '<span class="av-check">✓</span>' : '';
   if(u.photo){
     const t = esc(thumbURL(u.photo));
     const full = esc(u.photo);
     const click = clickable ? `onclick='event.stopPropagation();openPhotoCard(${JSON.stringify(u.id)})'` : '';
-    return `<div class="${cls}" style="background:${photoBg()}" data-ini="${ini}" data-fbg="${fbg}"><img src="${t}" data-full="${full}" ${click} onerror="avImgFail(this)"></div>`;
+    return `<div class="${cls}" style="background:${photoBg()}" data-ini="${ini}" data-fbg="${fbg}"><img src="${t}" data-full="${full}" ${click} onerror="avImgFail(this)">${check}</div>`;
   }
-  return `<div class="${cls}" style="background:${fbg}">${ini}</div>`;
+  return `<div class="${cls}" style="background:${fbg}">${ini}${check}</div>`;
 }
 
 /* Tarjeta de perfil: foto grande + nombre + descripción */
+let photoCardUser = null;
 function openPhotoCard(userId){
   const u = (userId===me.id) ? me : roomCache[userId];
   if(!u) return;
+  photoCardUser = u;
   const photoEl = document.getElementById('pcPhoto');
   if(u.photo){ photoEl.innerHTML = `<img src="${esc(u.photo)}" onerror="this.parentNode.textContent='${esc((u.name||'?').charAt(0).toUpperCase())}'">`; }
   else { photoEl.textContent = (u.name||'?').charAt(0).toUpperCase(); }
-  document.getElementById('pcName').textContent = (u.name||'') + (u.age?(' · '+u.age):'');
+  const verified = isVerified(u) ? ' <span class="vbadge">✓ Verificada</span>' : '';
+  document.getElementById('pcName').innerHTML = esc(u.name||'') + (u.age?(' · '+u.age):'') + verified;
   const bioEl = document.getElementById('pcBio');
   const bio = bioOf(u);
   if(bio){ bioEl.textContent = bio; bioEl.className = 'pc-bio'; }
   else { bioEl.textContent = (userId===me.id) ? 'Aún no has escrito una descripción. Edítala en tu perfil.' : 'Sin descripción.'; bioEl.className = 'pc-bio empty'; }
+  // Reportar solo en perfiles de otras personas
+  document.getElementById('pcReport').style.display = (userId===me.id) ? 'none' : 'block';
   document.getElementById('photoCard').classList.add('on');
 }
 function closePhotoCard(){ document.getElementById('photoCard').classList.remove('on'); }
+function reportFromCard(){ if(photoCardUser && photoCardUser.id!==me.id){ const t=photoCardUser; closePhotoCard(); openReport(t.id, t.name); } }
 
 function openLightbox(src){
   if(!src) return;
@@ -1581,7 +1682,7 @@ function closeLightbox(e){
   lb.classList.remove('on');
   document.getElementById('lightboxImg').src='';
 }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLightbox(); closeCelebrate(); closePhotoCard(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLightbox(); closeCelebrate(); closePhotoCard(); closeReport(); closePrivacy(); } });
 
 /* ════════ AVISOS (vibración + sonido) ════════ */
 let _ac=null;
@@ -1866,10 +1967,15 @@ const SOCIAL = {
 function fillSocialFooters(){
   const ig = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.43.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.43.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.43-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.43-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2zm0 1.8c-3.15 0-3.5.01-4.74.07-.9.04-1.38.19-1.7.31-.43.17-.74.37-1.06.69-.32.32-.52.63-.69 1.06-.12.32-.27.8-.31 1.7C3.8 8.5 3.8 8.85 3.8 12s0 3.5.07 4.74c.04.9.19 1.38.31 1.7.17.43.37.74.69 1.06.32.32.63.52 1.06.69.32.12.8.27 1.7.31 1.24.07 1.59.07 4.74.07s3.5 0 4.74-.07c.9-.04 1.38-.19 1.7-.31.43-.17.74-.37 1.06-.69.32-.32.52-.63.69-1.06.12-.32.27-.8.31-1.7.07-1.24.07-1.59.07-4.74s0-3.5-.07-4.74c-.04-.9-.19-1.38-.31-1.7a2.86 2.86 0 0 0-.69-1.06 2.86 2.86 0 0 0-1.06-.69c-.32-.12-.8-.27-1.7-.31C15.5 4.01 15.15 4 12 4zm0 3.06A4.94 4.94 0 1 0 12 16.94 4.94 4.94 0 0 0 12 7.06zm0 8.14A3.2 3.2 0 1 1 12 8.8a3.2 3.2 0 0 1 0 6.4zm5.13-8.34a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3z"/></svg>`;
   const tt = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5 2.59 2.59 0 0 1-2.59-2.59 2.59 2.59 0 0 1 3.35-2.48V9.66a5.7 5.7 0 0 0-.76-.05A5.71 5.71 0 0 0 4.16 15.3a5.71 5.71 0 0 0 11.39.51V8.99a7.34 7.34 0 0 0 4.29 1.37V7.27a4.28 4.28 0 0 1-3.23-1.45z"/></svg>`;
-  const html = `<a class="social-btn" href="${SOCIAL.instagram}" target="_blank" rel="noopener" aria-label="Instagram">${ig}</a>`
-             + `<a class="social-btn" href="${SOCIAL.tiktok}" target="_blank" rel="noopener" aria-label="TikTok">${tt}</a>`;
+  const html = `<div class="social-icons">`
+             + `<a class="social-btn" href="${SOCIAL.instagram}" target="_blank" rel="noopener" aria-label="Instagram">${ig}</a>`
+             + `<a class="social-btn" href="${SOCIAL.tiktok}" target="_blank" rel="noopener" aria-label="TikTok">${tt}</a>`
+             + `</div>`
+             + `<button class="privacy-link" onclick="openPrivacy()">Privacidad · todo se borra cada noche</button>`;
   document.querySelectorAll('[data-social]').forEach(el=>{ el.innerHTML = html; });
 }
+function openPrivacy(){ document.getElementById('privacyOverlay').classList.add('on'); }
+function closePrivacy(){ document.getElementById('privacyOverlay').classList.remove('on'); }
 
 /* ════════ ¿Es el QR de hoy o de una noche pasada? ════════ */
 function checkPartyDate(){
@@ -2269,7 +2375,11 @@ function exitQuestions(){ openMatches(); }
 
 /* ════════ PUBLICAR / CARGAR ════════ */
 async function publishMe(){
-  me.day=TODAY; saveMeLocal();
+  me.day=TODAY; 
+  // marcar la hora de llegada la primera vez que aparezco con nombre
+  me.answers = me.answers || {};
+  if(me.name && !me.answers._joined){ me.answers._joined = Date.now(); }
+  saveMeLocal();
   if(me.name){ await DB.upsertMe(); }
 }
 /* La sala se mantiene en memoria (roomCache). Solo se descarga entera una vez
@@ -2328,6 +2438,26 @@ function blockCurrent(){
   if(confirm(`¿Bloquear a ${nm}?\n\nDejaréis de veros en afines y el chat desaparecerá.`)){
     blockUser(chatWith.id);
   }
+}
+
+/* ════════ REPORTAR ════════ */
+let reportTarget = null;
+function reportCurrent(){ toggleChatMenu(); if(chatWith) openReport(chatWith.id, chatWith.name); }
+function openReport(id, name){
+  if(!id) return;
+  reportTarget = id;
+  document.getElementById('reportName').textContent = name || 'esta persona';
+  document.getElementById('reportOverlay').classList.add('on');
+}
+function closeReport(){ reportTarget=null; document.getElementById('reportOverlay').classList.remove('on'); }
+async function submitReport(reason){
+  const id = reportTarget;
+  closeReport();
+  if(!id) return;
+  try{ await DB.addReport(id, reason); }catch(e){}
+  // proteger al usuario al instante: además de reportar, lo bloqueamos
+  await blockUser(id);
+  toast('Gracias. Lo revisaremos y no volverás a ver a esta persona.');
 }
 async function blockUser(otherId){
   if(!me || !otherId) return;
@@ -3088,6 +3218,7 @@ function openMyProfile(){
   if(bioEl){ bioEl.value = bio; document.getElementById('myBioCount').textContent = bio.length; }
   const big = document.getElementById('myPhotoBig');
   if(me.photo){ big.innerHTML = `<img src="${me.photo}">`; } else { big.innerHTML = '📸'; }
+  updateVerifyState();
   generateQR();
   updateNotifState();
   updateQuestionsButtonLabel();
@@ -3104,12 +3235,29 @@ function zoomMyPhoto(){
   if(me.photo) openPhotoCard(me.id);
 }
 document.getElementById('myPhotoInput').addEventListener('change', async function(){
-  const f = this.files && this.files[0]; if(!f) return;
+  const f = this.files && this.files[0]; if(!f) return; this.value='';
   try{
     await setProfilePhoto(f, document.getElementById('myPhotoBig'));
+    me.answers = me.answers || {}; delete me.answers._verified;   // foto cambiada → ya no verificada
     await publishMe();
+    updateVerifyState();
   }catch(e){ console.warn('foto editar', e); toast('No se pudo cargar la foto'); }
 });
+document.getElementById('myVerifyInput').addEventListener('change', async function(){
+  const f = this.files && this.files[0]; if(!f) return; this.value='';
+  try{
+    await setProfilePhoto(f, document.getElementById('myPhotoBig'));
+    me.answers = me.answers || {}; me.answers._verified = true;   // hecha con la cámara ahora → verificada
+    await publishMe();
+    updateVerifyState();
+    toast('¡Foto verificada! ✓');
+  }catch(e){ console.warn('verificar foto', e); toast('No se pudo verificar la foto'); }
+});
+function updateVerifyState(){
+  const el = document.getElementById('verifyState'); if(!el) return;
+  if(me && isVerified(me)){ el.innerHTML = '<span class="vbadge">✓ Foto verificada</span>'; }
+  else { el.innerHTML = '<span class="verify-hint">Verifica tu foto haciéndola ahora con la cámara. Da más confianza.</span>'; }
+}
 async function saveMyProfile(){
   const n = (document.getElementById('myName').value||'').trim();
   const a = parseInt(document.getElementById('myAge').value, 10);
@@ -3219,7 +3367,7 @@ async function refreshMatches(force){
   const filtersSig = 'F'+[...activeFilters.estado].join('|')+'/'+[...activeFilters.estilo].join('|')+'/'+[...activeFilters.despues].join('|');
   const peopleSig = list.map(x=>{
     const u=x.u;
-    return u.id+':'+((u.photo||'').length)+':'+(u.name||'')+':'+(u.age||'')+':'+(u.zone||'')+':'+((u.groups||[]).join('-'))+':'+x.a.pct;
+    return u.id+':'+((u.photo||'').length)+':'+(u.name||'')+':'+(u.age||'')+':'+(u.zone||'')+':'+((u.groups||[]).join('-'))+':'+x.a.pct+':'+(isVerified(u)?'v':'')+':'+(isFreshArrival(u)?'f':'');
   }).join(',');
   const sig = genderFilter+'|'+peopleSig+'|B'+[...blocks.byMe,'>',...blocks.fromOthers].join(',')+'|'+filtersSig;
   if(sig===lastMatchSig && !force){
@@ -3251,6 +3399,7 @@ async function refreshMatches(force){
     const sameG = sharesGroupWithMe(u);
     const groupPill = (u.groups||[]).length ? `<span class="group-pill${sameG?' mine':''}" data-group-pill>En grupo</span>` : '<span data-group-pill></span>';
     const onlineSpan = `<span data-online></span>`;
+    const freshBadge = isFreshArrival(u) ? '<span class="fresharrival">✨ Acaba de llegar</span>' : '';
     const likeTag = isMutual
       ? '<span class="likes-you-tag mutual">💞 Os gustáis</span>'
       : (theyLiked ? '<span class="likes-you-tag">❤ Le gustas</span>' : '');
@@ -3259,7 +3408,7 @@ async function refreshMatches(force){
       ${avBox(u, '', true)}
       <div class="m-body">
         <div class="m-name"><span class="nm">${esc(u.name)} <span class="age">· ${u.age||''}</span></span>${likeTag}</div>
-        <div class="m-shared">${groupPill}${onlineSpan}${zoneTag}</div>
+        <div class="m-shared">${freshBadge}${groupPill}${onlineSpan}${zoneTag}</div>
       </div>
       <div class="m-right">
         <button class="like-btn ${iLiked?'on':''}" onclick='event.stopPropagation();toggleLike("${u.id}")' aria-label="Me gusta" title="${iLiked?'Quitar me gusta':'Me gusta'}">${heartSym}</button>
@@ -3617,7 +3766,8 @@ Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick
   showCoincidences,closeCoincPopup,goToQuestionsFromProfile,
   openFilterPanel,closeFilterPanel,toggleFilter,clearFilters,applyFilters,
   openInviteOverlay,closeInviteOverlay,restartClean,
-  onChatTyping,sendDrink,openPhotoCard,closePhotoCard,deleteMyProfile,exitQuestions});
+  onChatTyping,sendDrink,openPhotoCard,closePhotoCard,deleteMyProfile,exitQuestions,
+  reportCurrent,reportFromCard,openReport,closeReport,submitReport,openPrivacy,closePrivacy});
 
 init();
 </script>
