@@ -1678,14 +1678,13 @@ function avBox(u, extraClass, clickable){
   const ini = esc((u.name||'?').charAt(0).toUpperCase());
   const fbg = genderBg(u.gender);
   const cls = 'av' + (extraClass ? (' '+extraClass) : '');
-  const check = isVerified(u) ? '<span class="av-check">✓</span>' : '';
   if(u.photo){
     const t = esc(thumbURL(u.photo));
     const full = esc(u.photo);
     const click = clickable ? `onclick='event.stopPropagation();openPhotoCard(${JSON.stringify(u.id)})'` : '';
-    return `<div class="${cls}" style="background:${photoBg()}" data-ini="${ini}" data-fbg="${fbg}"><img src="${t}" data-full="${full}" ${click} onerror="avImgFail(this)">${check}</div>`;
+    return `<div class="${cls}" style="background:${photoBg()}" data-ini="${ini}" data-fbg="${fbg}"><img src="${t}" data-full="${full}" ${click} onerror="avImgFail(this)"></div>`;
   }
-  return `<div class="${cls}" style="background:${fbg}">${ini}${check}</div>`;
+  return `<div class="${cls}" style="background:${fbg}">${ini}</div>`;
 }
 
 /* Tarjeta de perfil: foto grande + nombre + descripción */
