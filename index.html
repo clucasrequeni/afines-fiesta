@@ -38,7 +38,9 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 @media(prefers-reduced-motion:reduce){.blob{animation:none}}
 
 #app{position:relative;z-index:2;max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
-.screen{display:none;flex:1;flex-direction:column;padding:26px 22px 30px;animation:fade .5s ease both}
+.screen{display:none;flex:1;flex-direction:column;padding:26px 22px 30px;animation:fade .5s ease both;position:relative}
+.screen-back{position:absolute;top:14px;left:10px;background:none;border:none;color:var(--ink);font-size:2rem;line-height:1;cursor:pointer;padding:4px 12px;z-index:7;opacity:.85}
+.screen-back:hover{opacity:1;color:var(--cyan)}
 .screen.on{display:flex}
 @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
@@ -724,6 +726,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 
   <!-- CONSENT -->
   <section class="screen" id="screen-consent">
+    <button class="screen-back" onclick="goBack()" aria-label="Atrás">‹</button>
     <div style="margin:auto 0;width:100%">
       <div style="text-align:center">
         <div class="consent-ico">🌙</div>
@@ -738,6 +741,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 
   <!-- PROFILE -->
   <section class="screen" id="screen-profile">
+    <button class="screen-back" onclick="goBack()" aria-label="Atrás">‹</button>
     <div class="head">
       <div class="kicker" style="margin-bottom:10px">Tú, esta noche</div>
       <h2>Cuéntanos lo básico</h2>
@@ -1991,6 +1995,7 @@ async function init(){
 
   startPolling();
   setupPullToRefresh();   // ↓ deslizar para actualizar
+  setupSwipeBack();       // → deslizar desde el borde para volver
   fillSocialFooters();    // 📱 iconos de TikTok e Instagram
   watchPartyDayChange();  // ⏰ recarga limpia si cruza las 17:00
   registerSW();           // 🔔 registra el Service Worker (lo necesita Web Push)
@@ -3478,7 +3483,7 @@ async function refreshMatches(force){
   const filtersSig = 'F'+[...activeFilters.estado].join('|')+'/'+[...activeFilters.estilo].join('|')+'/'+[...activeFilters.despues].join('|');
   const peopleSig = list.map(x=>{
     const u=x.u;
-    return u.id+':'+((u.photo||'').length)+':'+(u.name||'')+':'+(u.age||'')+':'+(u.zone||'')+':'+((u.groups||[]).join('-'))+':'+x.a.pct+':'+(isVerified(u)?'v':'')+':'+(isFreshArrival(u)?'f':'');
+    return u.id+':'+((u.photo||'').length)+':'+(u.name||'')+':'+(u.age||'')+':'+(u.zone||'')+':'+((u.groups||[]).join('-'))+':'+x.a.pct+':'+(isVerified(u)?'v':'');
   }).join(',');
   const sig = genderFilter+'|'+peopleSig+'|B'+[...blocks.byMe,'>',...blocks.fromOthers].join(',')+'|'+filtersSig;
   if(sig===lastMatchSig && !force){
@@ -3510,7 +3515,6 @@ async function refreshMatches(force){
     const sameG = sharesGroupWithMe(u);
     const groupPill = (u.groups||[]).length ? `<span class="group-pill${sameG?' mine':''}" data-group-pill>En grupo</span>` : '<span data-group-pill></span>';
     const onlineSpan = `<span data-online></span>`;
-    const freshBadge = isFreshArrival(u) ? '<span class="fresharrival">✨ Acaba de llegar</span>' : '';
     const likeTag = isMutual
       ? '<span class="likes-you-tag mutual">💞 Os gustáis</span>'
       : (theyLiked ? '<span class="likes-you-tag">❤ Le gustas</span>' : '');
@@ -3519,7 +3523,7 @@ async function refreshMatches(force){
       ${avBox(u, '', true)}
       <div class="m-body">
         <div class="m-name"><span class="nm">${esc(u.name)} <span class="age">· ${u.age||''}</span></span>${likeTag}</div>
-        <div class="m-shared">${freshBadge}${groupPill}${onlineSpan}${zoneTag}</div>
+        <div class="m-shared">${groupPill}${onlineSpan}${zoneTag}</div>
       </div>
       <div class="m-right">
         <button class="like-btn ${iLiked?'on':''}" onclick='event.stopPropagation();toggleLike("${u.id}")' aria-label="Me gusta" title="${iLiked?'Quitar me gusta':'Me gusta'}">${heartSym}</button>
@@ -3914,6 +3918,55 @@ function setupPullToRefresh(){
   });
 }
 
+/* ════════ VOLVER ATRÁS (botón + deslizar desde el borde) ════════ */
+function _openOverlayId(){
+  const ids=['cameraOverlay','photoCard','reportOverlay','privacyOverlay','coincPopup','sharePicker','filterPanel','lightbox'];
+  for(const id of ids){ const el=document.getElementById(id); if(el && el.classList.contains('on')) return id; }
+  return null;
+}
+function goBack(){
+  // 1) si hay una ventana/overlay abierta, ciérrala primero
+  const ov=_openOverlayId();
+  if(ov){
+    if(ov==='cameraOverlay') closeCamera();
+    else if(ov==='photoCard') closePhotoCard();
+    else if(ov==='reportOverlay') closeReport();
+    else if(ov==='privacyOverlay') closePrivacy();
+    else if(ov==='coincPopup'){ if(typeof closeCoincPopup==='function') closeCoincPopup(); }
+    else if(ov==='sharePicker') closeSharePicker();
+    else if(ov==='filterPanel'){ if(typeof closeFilterPanel==='function') closeFilterPanel(); }
+    else if(ov==='lightbox'){ if(typeof closeLightbox==='function') closeLightbox(); }
+    return;
+  }
+  // 2) si no, vuelve a la pantalla anterior según dónde estés
+  const cur=document.querySelector('.screen.on'); if(!cur) return;
+  switch(cur.id){
+    case 'screen-chat': closeChat(); break;
+    case 'screen-inbox': openMatches(); break;
+    case 'screen-group': closeGroupScreen(); break;
+    case 'screen-myprofile': closeMyProfile(); break;
+    case 'screen-questions': if(typeof qIndex==='number' && qIndex>0){ prevQ(); } else { show('screen-profile'); } break;
+    case 'screen-profile': show('screen-consent'); break;
+    case 'screen-consent': show('screen-welcome'); break;
+    default: break;   // matches, welcome, missed: no hay atrás (son inicio)
+  }
+}
+/* Deslizar desde el borde izquierdo hacia la derecha = volver (estilo iPhone) */
+function setupSwipeBack(){
+  let x0=0, y0=0, track=false;
+  document.addEventListener('touchstart',(e)=>{
+    if(e.touches.length!==1){ track=false; return; }
+    const t=e.touches[0];
+    if(t.clientX<=30){ x0=t.clientX; y0=t.clientY; track=true; } else track=false;
+  },{passive:true});
+  document.addEventListener('touchend',(e)=>{
+    if(!track) return; track=false;
+    const t=e.changedTouches[0];
+    const dx=t.clientX-x0, dy=t.clientY-y0;
+    if(dx>55 && Math.abs(dy)<45) goBack();
+  },{passive:true});
+}
+
 function startPolling(){
   if(poller) clearTimeout(poller);
   const loop=async ()=>{
@@ -3942,7 +3995,7 @@ Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick
   openInviteOverlay,closeInviteOverlay,restartClean,
   onChatTyping,sendDrink,openPhotoCard,closePhotoCard,deleteMyProfile,exitQuestions,
   reportCurrent,reportFromCard,openReport,closeReport,submitReport,openPrivacy,closePrivacy,
-  openCamera,closeCamera,flipCam,captureCam,retakeCam,useCamPhoto,camGallery});
+  openCamera,closeCamera,flipCam,captureCam,retakeCam,useCamPhoto,camGallery,goBack});
 
 init();
 </script>
