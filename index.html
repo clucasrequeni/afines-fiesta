@@ -42,6 +42,15 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .screen-back{position:absolute;top:14px;left:10px;background:none;border:none;color:var(--ink);font-size:2rem;line-height:1;cursor:pointer;padding:4px 12px;z-index:7;opacity:.85}
 .screen-back:hover{opacity:1;color:var(--cyan)}
 .screen.on{display:flex}
+#screen-finish-photo{align-items:center;justify-content:center;text-align:center;gap:18px}
+.finish-photo-circle{width:190px;height:190px;border-radius:50%;background:linear-gradient(160deg,var(--cyan),var(--violet));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;border:none;color:var(--ink);box-shadow:0 12px 40px rgba(0,0,0,.45);padding:18px}
+.finish-photo-circle:active{transform:scale(.97)}
+.finish-photo-circle .fp-ico{font-size:2.8rem}
+.finish-photo-circle .fp-lbl{font-weight:700;font-size:1rem;line-height:1.25}
+.finish-photo-sub{color:var(--muted);font-size:.92rem;max-width:280px}
+.finish-photo-gallery{background:none;border:none;color:var(--cyan);font-weight:600;cursor:pointer;font-size:.95rem}
+.finish-photo-skip{position:fixed;bottom:22px;right:22px;background:none;border:none;color:var(--muted);font-weight:600;font-size:.95rem;cursor:pointer;z-index:6}
+.finish-photo-skip:hover{color:var(--ink)}
 @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
 .brand{font-family:'Unbounded',sans-serif;font-weight:800}
@@ -799,6 +808,18 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       <button class="btn ghost" id="qBack" onclick="prevQ()">Atrás</button>
       <button class="btn" id="qNext" onclick="nextQ()" disabled>Siguiente</button>
     </div>
+  </section>
+
+  <!-- FOTO FINAL (tras las preguntas del alta) -->
+  <section class="screen" id="screen-finish-photo">
+    <button class="finish-photo-circle" onclick="openCamera('profile','finishPhotoInput')" aria-label="Hacer foto de perfil">
+      <span class="fp-ico">📸</span>
+      <span class="fp-lbl">Hacer foto<br>de perfil</span>
+    </button>
+    <p class="finish-photo-sub">Los perfiles con foto reciben muchos más “me gusta”.</p>
+    <button class="finish-photo-gallery" onclick="document.getElementById('finishPhotoInput').click()">Elegir de la galería</button>
+    <input type="file" id="finishPhotoInput" accept="image/*" style="display:none">
+    <button class="finish-photo-skip" onclick="skipFinishPhoto()">Saltar ›</button>
   </section>
 
   <!-- MATCHES -->
@@ -1606,6 +1627,7 @@ let me = null, qIndex = 0, acSelected = null, chatWith = null, poller = null;
 let rtChannel = null, REALTIME_OK = false, rtForId = null;   // tiempo real
 let roomCache = {}, roomLoaded = false;                       // caché de la sala (se actualiza por persona)
 let genderFilter = 'todos', chatReturn = 'screen-matches';
+let questionsBackScreen = 'screen-profile', finishingOnboardingPhoto = false;   // a dónde volver desde la pregunta 1 / foto final del alta
 let activeFilters = { estado:new Set(), estilo:new Set(), despues:new Set() };
 let onlineUsers = new Set();
 let presenceChannel = null;
@@ -2357,6 +2379,7 @@ async function useCamPhoto(){
   if(typeof updateVerifyState==='function') updateVerifyState();
   if(typeof validateProfile==='function') validateProfile();
   toast('Foto actualizada ✓');
+  if(finishingOnboardingPhoto){ finishingOnboardingPhoto=false; openMatches(); }
 }
 /* Envía un dataURL como foto al chat 1-a-1 actual (sube a Storage si se puede) */
 async function sendChatImage(dataUrl){
@@ -2408,6 +2431,7 @@ async function goQuestions(){
   await publishMe();
   setupRealtime();
   questionSet = CORE_QUESTIONS;           // alta: solo las 4 preguntas
+  questionsBackScreen = 'screen-profile';
   qIndex=0; while(qIndex<questionSet.length && me.answers[questionSet[qIndex].id]) qIndex++;
   if(qIndex>=questionSet.length) qIndex=0;
   renderQ(); show('screen-questions');
@@ -2441,7 +2465,7 @@ function renderQ(){
   document.getElementById('qcount').textContent=`Pregunta ${qIndex+1} de ${questionSet.length}`;
   document.getElementById('qtext').textContent=q.q;
   document.getElementById('acHint').textContent = '"Prefiero no contestar" no cuenta para la afinidad.';
-  document.getElementById('qBack').style.visibility=qIndex===0?'hidden':'visible';
+  document.getElementById('qBack').style.visibility='visible';   // atrás siempre disponible, incluso en la 1ª pregunta
   document.getElementById('qNext').textContent=qIndex===questionSet.length-1?'Listo' : 'Siguiente';
   // El campo arranca SIEMPRE vacío (sin respuesta por defecto). El placeholder
   // recuerda lo elegido antes si ya había respuesta.
@@ -2484,11 +2508,33 @@ async function nextQ(){
   // si eligió algo nuevo, lo guardamos; si dejó vacío, conservamos lo anterior
   if(acSelected){ me.answers[q.id]=acSelected; await publishMe(); }
   else if(!me.answers[q.id]){ return; }  // sin respuesta nueva ni vieja: no avanza
-  if(qIndex>=questionSet.length-1){ me.done=true; await publishMe(); openMatches(); return; }
+  if(qIndex>=questionSet.length-1){
+    me.done=true; await publishMe();
+    if(questionSet===CORE_QUESTIONS && !me.photo){ goFinishPhoto(); } else { openMatches(); }
+    return;
+  }
   qIndex++; renderQ();
 }
-function prevQ(){ if(qIndex>0){ qIndex--; renderQ(); } }
+function prevQ(){ if(qIndex>0){ qIndex--; renderQ(); } else { show(questionsBackScreen); } }
 function exitQuestions(){ openMatches(); }
+
+/* ════════ FOTO FINAL TRAS EL ALTA ════════
+   Al terminar las preguntas, si todavía no hay foto, intentamos abrir la
+   cámara directamente. Si el navegador la bloquea (sin permiso o sin gesto
+   reciente), se queda visible el círculo grande para pulsarlo a mano. */
+function goFinishPhoto(){
+  finishingOnboardingPhoto = true;
+  show('screen-finish-photo');
+  openCamera('profile','finishPhotoInput');
+}
+function skipFinishPhoto(){ finishingOnboardingPhoto=false; openMatches(); }
+document.getElementById('finishPhotoInput').addEventListener('change', async function(){
+  const f=this.files&&this.files[0]; this.value=''; if(!f) return;
+  try{ await setProfilePhoto(f, null); await publishMe(); toast('Foto actualizada ✓'); }
+  catch(e){ console.warn('foto perfil', e); toast('No se pudo cargar la foto'); }
+  finishingOnboardingPhoto=false;
+  openMatches();
+});
 
 /* ════════ PUBLICAR / CARGAR ════════ */
 async function publishMe(){
@@ -2748,6 +2794,7 @@ function goToQuestionsFromProfile(){
   if(!me){ return; }
   closeMyProfile();
   questionSet = QUESTIONS;                 // desde el perfil: todas las preguntas
+  questionsBackScreen = 'screen-matches';
   qIndex = 0;
   if(me.answers){
     let firstEmpty = -1;
@@ -3945,7 +3992,8 @@ function goBack(){
     case 'screen-inbox': openMatches(); break;
     case 'screen-group': closeGroupScreen(); break;
     case 'screen-myprofile': closeMyProfile(); break;
-    case 'screen-questions': if(typeof qIndex==='number' && qIndex>0){ prevQ(); } else { show('screen-profile'); } break;
+    case 'screen-questions': prevQ(); break;
+    case 'screen-finish-photo': skipFinishPhoto(); break;
     case 'screen-profile': show('screen-consent'); break;
     case 'screen-consent': show('screen-welcome'); break;
     default: break;   // matches, welcome, missed: no hay atrás (son inicio)
@@ -3995,7 +4043,8 @@ Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick
   openInviteOverlay,closeInviteOverlay,restartClean,
   onChatTyping,sendDrink,openPhotoCard,closePhotoCard,deleteMyProfile,exitQuestions,
   reportCurrent,reportFromCard,openReport,closeReport,submitReport,openPrivacy,closePrivacy,
-  openCamera,closeCamera,flipCam,captureCam,retakeCam,useCamPhoto,camGallery,goBack});
+  openCamera,closeCamera,flipCam,captureCam,retakeCam,useCamPhoto,camGallery,goBack,
+  goFinishPhoto,skipFinishPhoto});
 
 init();
 </script>
