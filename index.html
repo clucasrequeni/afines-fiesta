@@ -2708,7 +2708,11 @@ function affinity(a,b){
 }
 
 /* ════════ AFINES ════════ */
-function setGenderFilter(g){ genderFilter=g; lastMatchSig=''; document.querySelectorAll('#chips .chip:not(.filters-gear)').forEach(c=>c.classList.toggle('on',c.dataset.g===g)); refreshMatches(); }
+function setGenderFilter(g){
+  // si pulso el filtro que ya está activo (y no es "todos"), se quita solo y vuelve a "todos"
+  if(g===genderFilter && g!=='todos') g='todos';
+  genderFilter=g; lastMatchSig=''; document.querySelectorAll('#chips .chip:not(.filters-gear)').forEach(c=>c.classList.toggle('on',c.dataset.g===g)); refreshMatches();
+}
 
 /* ════════ PRESENCIA EN TIEMPO REAL (sin BBDD) ════════
    Usamos Supabase Realtime Presence: cada cliente "se anuncia" en un canal.
