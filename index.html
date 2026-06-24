@@ -2510,7 +2510,7 @@ async function nextQ(){
   else if(!me.answers[q.id]){ return; }  // sin respuesta nueva ni vieja: no avanza
   if(qIndex>=questionSet.length-1){
     me.done=true; await publishMe();
-    if(questionSet===CORE_QUESTIONS && !me.photo){ goFinishPhoto(); } else { openMatches(); }
+    if(questionSet===CORE_QUESTIONS){ goFinishPhoto(); } else { openMatches(); }
     return;
   }
   qIndex++; renderQ();
