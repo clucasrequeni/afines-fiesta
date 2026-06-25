@@ -278,13 +278,19 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .empty .e-ico{font-size:2.6rem;margin-bottom:14px}
 
 /* SELECTOR DE ZONA */
-.zone-bar{background:var(--card);border:1px solid var(--card-line);border-radius:var(--r);padding:12px 14px 14px;margin-bottom:14px}
-.zone-bar .zone-lbl{font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:9px;display:flex;align-items:center;gap:6px}
-.zone-chips{display:flex;flex-wrap:wrap;gap:7px;padding-bottom:2px}
-.zone-chip{flex:none;padding:7px 14px;border-radius:30px;border:1.5px solid var(--card-line);background:rgba(255,255,255,.03);color:var(--muted);font-family:inherit;font-weight:600;font-size:.85rem;cursor:pointer;white-space:nowrap;transition:.14s}
-.zone-chip:hover{border-color:var(--cyan);color:var(--ink)}
-.zone-chip.on{background:linear-gradient(105deg,rgba(39,224,214,.22),rgba(139,92,255,.22));border-color:var(--cyan);color:#fff}
-.zone-tag{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;background:rgba(39,224,214,.16);color:#a8f0e9;padding:2px 8px;border-radius:30px;font-weight:600;margin-right:6px;white-space:nowrap}
+/* Popup "Proponer quedar" (sustituye al antiguo selector público de zona) */
+.meet-tag{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;background:rgba(39,224,214,.16);color:#a8f0e9;padding:2px 8px;border-radius:30px;font-weight:600;white-space:nowrap}
+#meetPicker{position:fixed;inset:0;z-index:90;background:rgba(8,6,15,.9);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:24px}
+#meetPicker.on{display:flex}
+.meet-card{background:var(--card);border:1px solid var(--card-line);border-radius:var(--r);padding:22px 20px;width:100%;max-width:340px}
+.meet-card .ttl{font-weight:700;margin-bottom:14px;text-align:center}
+.meet-zones{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px}
+.meet-zones button{padding:8px 16px;border-radius:30px;border:1.5px solid var(--card-line);background:rgba(255,255,255,.03);color:var(--ink);font-family:inherit;font-weight:600;font-size:.85rem;cursor:pointer}
+.meet-zones button:hover{border-color:var(--cyan)}
+.meet-card .cancel{width:100%;padding:11px;border-radius:30px;border:1.5px solid var(--card-line);background:transparent;color:var(--muted);font-family:inherit;cursor:pointer}
+.bub.meet{display:flex;flex-direction:column;gap:8px;background:linear-gradient(105deg,rgba(39,224,214,.18),rgba(139,92,255,.18))!important;border:1px solid rgba(39,224,214,.4)}
+.bub.meet .meet-go{align-self:flex-start;padding:7px 14px;border-radius:30px;border:none;background:var(--grad);color:#fff;font-weight:700;font-size:.85rem;cursor:pointer}
+.bub.meet .meet-go:disabled{opacity:.6;cursor:default}
 
 /* GRUPO DE AMIGOS */
 .group-bar{background:var(--card);border:1px solid var(--card-line);border-radius:var(--r);padding:14px 16px;margin-bottom:14px}
@@ -363,6 +369,18 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .attach:hover{border-color:var(--cyan)}
 .bub.img{padding:5px;background:rgba(255,255,255,.07)!important;border:1px solid var(--card-line)}
 .bub.img img{max-width:200px;max-height:260px;border-radius:12px;display:block;cursor:zoom-in}
+.bub.audio{padding:7px 10px;background:rgba(255,255,255,.07)!important;border:1px solid var(--card-line)}
+.bub.audio audio{display:block;height:38px}
+#voiceRecOverlay{position:fixed;inset:0;z-index:90;background:rgba(8,6,15,.9);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:24px}
+#voiceRecOverlay.on{display:flex}
+.voice-rec-card{background:var(--card);border:1px solid var(--card-line);border-radius:var(--r);padding:28px 24px;text-align:center;width:100%;max-width:320px}
+.voice-rec-dot{width:18px;height:18px;border-radius:50%;background:#ff4d6d;margin:0 auto 14px;animation:vrpulse 1s ease-in-out infinite}
+@keyframes vrpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+.voice-rec-time{font-family:'Unbounded',sans-serif;font-weight:700;font-size:1.6rem;margin-bottom:18px}
+.voice-rec-actions{display:flex;gap:12px;justify-content:center}
+.voice-rec-actions button{flex:1;padding:13px;border-radius:30px;border:none;font-weight:700;cursor:pointer;font-family:inherit}
+.voice-rec-actions .vr-cancel{background:var(--card);border:1.5px solid var(--card-line);color:var(--ink)}
+.voice-rec-actions .vr-send{background:var(--grad);color:#fff}
 /* Burbuja "te ha mandado una copa" */
 .bub.drink{display:flex;align-items:center;gap:10px;background:linear-gradient(105deg,rgba(255,138,43,.22),rgba(255,46,139,.22))!important;border:1px solid rgba(255,138,43,.45);font-weight:600}
 .bub.drink .ico{font-size:1.5rem;animation:cheers 1.6s ease-in-out infinite}
@@ -511,6 +529,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .gr-mygroup .ttl{font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#ffd23f;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
 .gr-mygroup .code{font-family:'Unbounded',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:.16em;background:linear-gradient(105deg,#ffd23f,#ff8a2b);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .gr-mygroup .names{color:var(--muted);font-size:.88rem;margin-top:4px}
+.gr-mygroup .gr-count{color:#ffd23f;font-size:.82rem;font-weight:600;margin-top:2px}
+.gchat-title{font-size:.82rem;font-weight:700;color:#ffd23f;padding:2px 4px 10px;text-align:center}
 .gr-mygroup .leave-link{color:#ff8a8a;text-decoration:underline;background:none;border:none;font-family:inherit;font-size:.78rem;cursor:pointer}
 .gr-section-title{font-size:.74rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
 /* Barra de chips para cambiar entre grupos */
@@ -729,7 +749,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     </div>
     <div class="welcome-social" id="welcomeSocial" style="display:none"></div>
     <button class="btn" id="welcomeBtn" onclick="goConsent()">Entrar</button>
-    <div class="welcome-tagline">Lo que pasa esta noche se queda en esta noche</div>
+    <div class="welcome-tagline">Lo que pasa en esta fiesta se queda en esta fiesta</div>
     <div class="social-footer" data-social></div>
   </section>
 
@@ -843,10 +863,6 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       <button onclick="requestNotifPerm()">Activar</button>
       <button class="dismiss" onclick="dismissNotifBanner()" aria-label="Cerrar">✕</button>
     </div>
-    <div class="zone-bar">
-      <div class="zone-lbl">📍 ¿Dónde estás?</div>
-      <div class="zone-chips" id="zoneChips"></div>
-    </div>
     <div class="chips" id="chips">
       <button class="chip on" data-g="todos" onclick="setGenderFilter('todos')">Todos</button>
       <button class="chip" data-g="chica" onclick="setGenderFilter('chica')">Chicas</button>
@@ -886,6 +902,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     <div class="chat-input">
       <button class="attach" onclick="sendDrink()" title="Mándale una copa">🍹</button>
       <button class="attach" onclick="openCamera('chat','chatPhoto')" title="Enviar foto">📷</button>
+      <button class="attach" onclick="startVoiceRecording('chat')" title="Mensaje de voz">🎤</button>
+      <button class="attach" onclick="openMeetPicker()" title="Proponer quedar">📍</button>
       <input type="file" id="chatPhoto" accept="image/*" style="display:none">
       <input class="input" id="chatInput" placeholder="Escribe algo…" autocomplete="off" oninput="onChatTyping()" onkeydown="if(event.key==='Enter')sendMsg()">
       <button class="send" onclick="sendMsg()">➤</button>
@@ -978,7 +996,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 <div id="invitePopup">
   <div class="invite-card">
     <div class="ico">👥</div>
-    <div class="ttl"><b id="inviteFromName">Alguien</b> te invita a su grupo</div>
+    <div class="ttl"><b id="inviteFromName">Alguien</b> te invita a su grupo <b id="inviteGroupName">"…"</b></div>
     <div class="sub" id="inviteSub">Si lo aceptas, apareceréis marcados como del mismo grupo en la pantalla principal.</div>
     <div class="actions">
       <button class="btn ghost" onclick="rejectCurrentInvite()">Rechazar</button>
@@ -998,6 +1016,27 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     </div>
     <div class="sp-sub">Toca a una persona conectada para que aparezca en el chat de tu grupo.</div>
     <div class="sp-list" id="sharePickerList"></div>
+  </div>
+</div>
+
+<!-- PROPONER QUEDAR (sustituye al antiguo "¿Dónde estás?") -->
+<div id="meetPicker">
+  <div class="meet-card">
+    <div class="ttl">📍 ¿Dónde quieres proponer quedar?</div>
+    <div class="meet-zones" id="meetZones"></div>
+    <button class="cancel" onclick="closeMeetPicker()">Cancelar</button>
+  </div>
+</div>
+
+<!-- GRABADOR DE MENSAJES DE VOZ -->
+<div id="voiceRecOverlay">
+  <div class="voice-rec-card">
+    <div class="voice-rec-dot"></div>
+    <div class="voice-rec-time" id="voiceRecTime">0:00</div>
+    <div class="voice-rec-actions">
+      <button class="vr-cancel" onclick="cancelVoiceRecording()">Cancelar</button>
+      <button class="vr-send" onclick="stopAndSendVoiceRecording()">Enviar ➤</button>
+    </div>
   </div>
 </div>
 
@@ -1156,7 +1195,7 @@ const PURGE_OLD_NIGHTS = true;
 const VENUE_NAME = "**********";
 
 /* (no hace falta tocar nada más debajo de aquí) */
-const PARTY_CODE = (VENUE_NAME.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'').toUpperCase() || 'AFINES');
+const PARTY_CODE = (VENUE_NAME.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'').toUpperCase() || 'AFINES');
 /* La "noche de fiesta" empieza a las 17:00 hora local y dura hasta las 16:59
    del día siguiente. Antes de las 17:00, seguimos contando como la fiesta de
    "ayer" — así, lo que pasa de viernes 22h hasta sábado 16:59 es la MISMA noche
@@ -1619,6 +1658,36 @@ const DB = {
       }
       return out.sort((a,b)=>a.ts-b.ts);
     }
+  },
+  /* 🏷️ NOMBRES DE GRUPO */
+  async setGroupName(code, name){
+    if(!code) return false;
+    if(SB_READY){
+      const { error } = await sb.from('party_groups').upsert({
+        party_code:PARTY_CODE, night:TODAY, group_code:code, name:name||'', created_by:me.id
+      }, { onConflict:'party_code,night,group_code' });
+      if(error){ console.warn('[SB setGroupName]', error.message); return false; }
+      return true;
+    } else {
+      await Store.set(`fiesta:${PARTY_CODE}:gname:${code}`, name||'', true);
+      return true;
+    }
+  },
+  async allGroupNames(){
+    if(SB_READY){
+      const { data, error } = await sb.from('party_groups')
+        .select('group_code,name')
+        .eq('party_code',PARTY_CODE).eq('night',TODAY);
+      if(error){ console.warn('[SB allGroupNames]', error.message); return {}; }
+      const out={}; (data||[]).forEach(g=>{ out[g.group_code]=g.name; }); return out;
+    } else {
+      const out={};
+      for(const k of await Store.list(`fiesta:${PARTY_CODE}:gname:`,true)){
+        const code = k.split(':gname:')[1];
+        const v = await Store.get(k,true); if(v) out[code]=v;
+      }
+      return out;
+    }
   }
 };
 
@@ -1657,7 +1726,7 @@ const likes = { byMe:new Set(), toMe:new Set() }; // ids
 const blocks = { byMe:new Set(), fromOthers:new Set() }; // bloqueos (los que yo hice + los que me hicieron)
 const fab = document.getElementById('fab');
 
-function norm(s){ return (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(); }
+function norm(s){ return (s||'').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim(); }
 function uid(){ return 'u'+Math.random().toString(36).slice(2,9)+Date.now().toString(36); }
 function colorFor(id){ let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))>>>0; return ['#ff2e8b','#ff8a2b','#27e0d6','#8b5cff','#ffd23f','#3ad17e'][h%6]; }
 function genderBg(g){ return g==='chica'?'var(--pink)':g==='chico'?'var(--blue)':'#8b5cff'; }
@@ -2401,6 +2470,16 @@ function isImageMsg(t){
 /* "Mándale una copa": mensaje especial con un marcador reservado */
 const DRINK_MARK = '::afines-copa::';
 function isDrinkMsg(t){ return t === DRINK_MARK; }
+/* Mensajes de voz: se guarda como "__audio__<url>" en content */
+const AUDIO_MARK = '__audio__';
+function isAudioMsg(t){ return typeof t==='string' && t.startsWith(AUDIO_MARK); }
+function audioMsgUrl(t){ return t.slice(AUDIO_MARK.length); }
+
+/* "Proponer quedar": invitación privada a verse en un punto concreto del local,
+   sustituye al antiguo selector público de zona (eliminado). */
+const MEET_MARK = '__meet__';
+function isMeetMsg(t){ return typeof t==='string' && t.startsWith(MEET_MARK); }
+function meetZone(t){ return t.slice(MEET_MARK.length); }
 
 /* Sube una imagen (dataURL o Blob) a Supabase Storage y devuelve su URL pública (CDN).
    Si no hay Supabase o falla, devuelve null y se usa el respaldo en base64. */
@@ -2424,6 +2503,74 @@ document.getElementById('chatPhoto').addEventListener('change', async function()
   }
   catch(e){ toast('No se pudo enviar la foto'); }
 });
+
+/* ════════ MENSAJES DE VOZ (1-a-1 y grupo) ════════ */
+let voiceRecorder=null, voiceChunks=[], voiceStream=null, voiceStartTs=0, voiceTimerInt=null, voiceTarget='chat';
+function voiceSupported(){ return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder); }
+async function startVoiceRecording(target){
+  if(!voiceSupported()){ toast('Tu navegador no permite grabar audio'); return; }
+  if(target==='chat' && !chatWith) return;
+  if(target==='group' && !activeGroup) return;
+  voiceTarget = target;
+  try{ voiceStream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
+  catch(e){ toast('No se pudo acceder al micrófono'); return; }
+  voiceChunks = [];
+  const mime = (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm')) ? 'audio/webm' : '';
+  voiceRecorder = mime ? new MediaRecorder(voiceStream,{mimeType:mime}) : new MediaRecorder(voiceStream);
+  voiceRecorder.ondataavailable = e=>{ if(e.data && e.data.size) voiceChunks.push(e.data); };
+  voiceRecorder.start();
+  voiceStartTs = Date.now();
+  document.getElementById('voiceRecOverlay').classList.add('on');
+  document.getElementById('voiceRecTime').textContent='0:00';
+  voiceTimerInt = setInterval(()=>{
+    const s = Math.floor((Date.now()-voiceStartTs)/1000);
+    const el=document.getElementById('voiceRecTime'); if(el) el.textContent = Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+    if(s>=120) stopAndSendVoiceRecording();   // límite 2 min por mensaje
+  },250);
+}
+function stopVoiceStream(){
+  if(voiceStream){ try{ voiceStream.getTracks().forEach(t=>t.stop()); }catch(e){} voiceStream=null; }
+  clearInterval(voiceTimerInt); voiceTimerInt=null;
+  const o=document.getElementById('voiceRecOverlay'); if(o) o.classList.remove('on');
+}
+function cancelVoiceRecording(){
+  if(voiceRecorder && voiceRecorder.state!=='inactive'){ try{ voiceRecorder.stop(); }catch(e){} }
+  voiceRecorder=null; voiceChunks=[];
+  stopVoiceStream();
+}
+async function stopAndSendVoiceRecording(){
+  if(!voiceRecorder || voiceRecorder.state==='inactive'){ stopVoiceStream(); return; }
+  const target = voiceTarget;
+  const done = new Promise(resolve=>{ voiceRecorder.onstop = resolve; });
+  voiceRecorder.stop();
+  await done;
+  stopVoiceStream();
+  if(!voiceChunks.length) return;
+  const blob = new Blob(voiceChunks, { type: voiceChunks[0].type || 'audio/webm' });
+  voiceChunks=[];
+  toast('Enviando audio…');
+  let url = null;
+  if(SB_READY){
+    const ext = blob.type.includes('mp4') ? 'm4a' : 'webm';
+    const path = `${PARTY_CODE}/${TODAY}/audio/${me.id}/${Date.now()}.${ext}`;
+    try{
+      const { error } = await sb.storage.from('audios').upload(path, blob, { contentType: blob.type||'audio/webm', upsert:true });
+      if(!error){ const { data } = sb.storage.from('audios').getPublicUrl(path); url = data && data.publicUrl; }
+      else console.warn('[SB upload audio]', error.message);
+    }catch(e){ console.warn('[upload audio]', e); }
+  }
+  if(!url){ toast('No se pudo enviar el audio'); return; }
+  const content = AUDIO_MARK + url;
+  if(target==='chat'){
+    if(!chatWith) return;
+    await DB.send(chatWith.id, content);
+    renderChat();
+  } else {
+    if(!activeGroup) return;
+    const ok = await DB.sendGroupMsg(content, activeGroup);
+    if(ok){ gChatCache.push({id:'tmp'+Date.now(), from:me.id, text:content, ts:Date.now()}); paintGroupChat(); }
+  }
+}
 
 async function goQuestions(){
   me.name=document.getElementById('inName').value.trim();
@@ -2538,7 +2685,7 @@ document.getElementById('finishPhotoInput').addEventListener('change', async fun
 
 /* ════════ PUBLICAR / CARGAR ════════ */
 async function publishMe(){
-  me.day=TODAY; 
+  me.day=TODAY;
   // marcar la hora de llegada la primera vez que aparezco con nombre
   me.answers = me.answers || {};
   if(me.name && !me.answers._joined){ me.answers._joined = Date.now(); }
@@ -2884,20 +3031,8 @@ function passesAdvancedFilters(u){
 }
 
 
-/* Selector personal de zona del local */
-function renderZoneChips(){
-  const cont=document.getElementById('zoneChips'); if(!cont) return;
-  const mine = (me && me.zone) || '';
-  cont.innerHTML = ZONES.map(z=>`<button class="zone-chip ${z===mine?'on':''}" onclick='setZone(${JSON.stringify(z)})'>${esc(z)}</button>`).join('')
-    + `<button class="zone-chip ${!mine?'on':''}" onclick='setZone("")'>—</button>`;
-}
-async function setZone(z){
-  if(!me) return;
-  me.zone = z || '';
-  saveMeLocal();
-  renderZoneChips();
-  await publishMe();          // se propaga por tiempo real al resto
-}
+/* La zona ya no se difunde públicamente (antes "¿Dónde estás?").
+   Ahora se usa solo de forma privada para proponer quedar con alguien concreto, ver proposeMeet(). */
 
 /* ════════ GRUPOS DE AMIGOS (puedes estar en varios a la vez) ════════ */
 const GROUP_CHARS   = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -2906,6 +3041,17 @@ function genGroupCode(){ let s=''; for(let i=0;i<4;i++) s+=GROUP_CHARS[Math.floo
 /* Mis grupos (array). Compatible con datos antiguos de un solo grupo. */
 function myGroups(){ if(me && Array.isArray(me.groups)) return me.groups; return []; }
 function inGroup(code){ return myGroups().includes(code); }
+
+/* Nombres de los grupos (code → nombre puesto al crearlo) */
+let groupNames = {};
+async function loadGroupNames(){
+  try{ groupNames = await DB.allGroupNames(); }catch(e){}
+}
+function groupLabel(code){
+  if(!code) return '';
+  const n = groupNames[code];
+  return (n && n.trim()) ? n.trim() : ('Grupo ' + code);
+}
 /* Miembros (de la sala) que pertenecen a un grupo concreto */
 function groupMembers(code){
   if(!code) return [];
@@ -2967,6 +3113,7 @@ let unreadByGroup = {};        // mensajes sin leer por grupo (en vivo)
 async function openGroupScreen(){
   chatReturn='screen-matches';
   await loadInvites();
+  await loadGroupNames();
   // Elegir grupo activo por defecto
   if(!activeGroup || !inGroup(activeGroup)) activeGroup = myGroups()[0] || null;
   if(!activeGroup) groupTab = 'invite';
@@ -2992,10 +3139,14 @@ function setActiveGroup(code){
 
 async function createMyGroup(){
   if(!me) return;
+  let name = (prompt('¿Qué nombre le quieres poner al grupo?', '') || '').trim();
   const code = await addNewGroup();
+  if(!name) name = 'Grupo de ' + (me.name || 'amigos');
+  await DB.setGroupName(code, name);
+  groupNames[code] = name;
   groupTab = 'invite';
   renderGroupScreen();
-  toast('Grupo creado: ' + code);
+  toast('Grupo creado: ' + name);
 }
 function setGroupTab(t){ groupTab = t; renderGroupScreen(); if(t==='chat' && activeGroup){ markGroupRead(activeGroup); } }
 
@@ -3030,7 +3181,7 @@ function renderGroupScreen(){
     const n = groupMembers(code).length + 1;            // +1 = yo
     const u = unreadByGroup[code] || 0;
     const badge = u>0 ? `<span class="gchip-badge">${u>9?'9+':u}</span>` : '';
-    return `<button class="gchip ${code===activeGroup?'on':''}" onclick="setActiveGroup('${code}')">${esc(code)} <span class="gchip-n">·${n}</span>${badge}</button>`;
+    return `<button class="gchip ${code===activeGroup?'on':''}" onclick="setActiveGroup('${code}')" title="Código: ${esc(code)}">${esc(groupLabel(code))} <span class="gchip-n">·${n}</span>${badge}</button>`;
   }).join('');
   chips += `<button class="gchip new" onclick="createMyGroup()">+ Nuevo</button>`;
   let topBar = `<div class="gchips">${chips}</div>`;
@@ -3065,9 +3216,11 @@ function renderGroupScreen(){
     </div>`;
   }
 
+  const totalN = members.length + 1;   // +1 = yo
   let html = topBar + `
     <div class="gr-mygroup">
-      <div class="ttl"><span>👥 Grupo · ${esc(activeGroup)}</span><button class="leave-link" onclick="leaveGroup('${activeGroup}')">Salir</button></div>
+      <div class="ttl"><span>👥 ${esc(groupLabel(activeGroup))}</span><button class="leave-link" onclick="leaveGroup('${activeGroup}')">Salir</button></div>
+      <div class="gr-count">En grupo con ${totalN} persona${totalN===1?'':'s'}</div>
       <div class="names">${memberNames.length ? esc(memberNames.slice(0,5).join(', ') + (memberNames.length>5?` y ${memberNames.length-5} más`:'') + ', tú') : 'Solo tú de momento'}</div>
     </div>`;
 
@@ -3094,11 +3247,14 @@ async function renderGroupChat(){
   const cont = document.getElementById('groupContent'); if(!cont || !activeGroup) return;
   gChatCache = await DB.groupMessages(activeGroup);
   const sig = gChatCache.length + '|' + (gChatCache.length?gChatCache[gChatCache.length-1].ts:0);
+  const totalN = groupMembers(activeGroup).length + 1;
   cont.innerHTML = `
     <div class="gchat-wrap">
+      <div class="gchat-title">👥 ${esc(groupLabel(activeGroup))} · en grupo con ${totalN} persona${totalN===1?'':'s'}</div>
       <div class="gchat-msgs" id="gchatMsgs"></div>
       <div class="gchat-input">
-        <input class="input" id="gchatInput" placeholder="Escribe al grupo ${esc(activeGroup)}…" autocomplete="off"
+        <button class="attach" onclick="startVoiceRecording('group')" title="Mensaje de voz">🎤</button>
+        <input class="input" id="gchatInput" placeholder="Escribe al grupo ${esc(groupLabel(activeGroup))}…" autocomplete="off"
                onkeydown="if(event.key==='Enter')sendGroupMessage()">
         <button class="send" onclick="sendGroupMessage()">➤</button>
       </div>
@@ -3140,6 +3296,9 @@ function renderGroupBubbleInner(m){
         </div>
       </div>`;
     }catch(e){ /* cae a texto plano */ }
+  }
+  if(isAudioMsg(m.text)){
+    return `<audio controls preload="none" src="${esc(audioMsgUrl(m.text))}" style="max-width:230px"></audio>`;
   }
   if(isImageMsg(m.text)){
     return `<img src="${m.text}" style="max-width:200px;max-height:240px;border-radius:10px;display:block;cursor:zoom-in" onclick="openLightbox(this.src)">`;
@@ -3252,6 +3411,7 @@ const inviteQueue = [];
 
 async function loadInvites(){
   const all = await DB.myInvites();
+  if(all.some(inv=>inv.to_id===me.id && inv.status==='pending' && !groupNames[inv.group_code])) await loadGroupNames();
   invitesSent.clear();
   const pendingForMe = [];
   for(const inv of all){
@@ -3286,7 +3446,7 @@ async function sendInvite(otherId){
     toast('No se pudo invitar: ' + why);
     console.warn('Invite error detallado:', res);
   } else {
-    toast('Invitación enviada al grupo ' + code);
+    toast('Invitación enviada al grupo "' + groupLabel(code) + '"');
   }
   renderGroupScreen();
 }
@@ -3296,11 +3456,14 @@ function showIncomingInvite(inv){
   currentIncomingInvite = inv;
   const u = roomCache[inv.from_id];
   const fromName = (u && u.name) ? u.name : 'Alguien';
+  const gName = groupLabel(inv.group_code);
   document.getElementById('inviteFromName').textContent = fromName;
+  const gEl = document.getElementById('inviteGroupName'); if(gEl) gEl.textContent = '"' + gName + '"';
   document.getElementById('invitePopup').classList.add('on');
   try{ if('vibrate' in navigator) navigator.vibrate([60,40,60]); }catch(e){}
   try{ if(typeof beep==='function'){ beep(660,.12,.16,'triangle'); setTimeout(()=>beep(880,.16,.16,'triangle'),120); } }catch(e){}
-  if(document.hidden){ pushNotify('👥 ' + fromName + ' te ha invitado a su grupo!', 'Toca para aceptar o rechazar', 'invite-'+inv.from_id, {kind:'invite', fromId: inv.from_id}); }
+  if(document.hidden){ pushNotify('👥 ' + fromName + ' te ha invitado a su grupo "' + gName + '"', 'Toca para aceptar o rechazar', 'invite-'+inv.from_id, {kind:'invite', fromId: inv.from_id}); }
+  else toast(`👥 ${fromName} te ha invitado al grupo "${gName}"`);
 }
 function hideIncomingInvite(){
   currentIncomingInvite = null;
@@ -3366,7 +3529,6 @@ async function openMatches(){
   setupRealtime();
   setupPresence();        // 🟢 presencia en tiempo real para "en línea"
   updateProfileBtn();
-  renderZoneChips();
   updateNotifBanner();
   await loadLikes(); await loadBlocks(); await loadInvites();
   await refreshGroupsUnread();
@@ -3562,7 +3724,6 @@ async function refreshMatches(force){
     const theyLiked = likes.toMe.has(u.id);
     const isMutual = iLiked && theyLiked;
     const fresh = prev.has(u.id) ? '' : 'fresh';   // animación SOLO si es nuevo
-    const zoneTag = u.zone ? `<span class="zone-tag" data-zone-tag>📍 ${esc(u.zone)}</span>` : '<span data-zone-tag></span>';
     const sameG = sharesGroupWithMe(u);
     const groupPill = (u.groups||[]).length ? `<span class="group-pill${sameG?' mine':''}" data-group-pill>En grupo</span>` : '<span data-group-pill></span>';
     const onlineSpan = `<span data-online></span>`;
@@ -3574,7 +3735,7 @@ async function refreshMatches(force){
       ${avBox(u, '', true)}
       <div class="m-body">
         <div class="m-name"><span class="nm">${esc(u.name)} <span class="age">· ${u.age||''}</span></span>${likeTag}</div>
-        <div class="m-shared">${groupPill}${onlineSpan}${zoneTag}</div>
+        <div class="m-shared">${groupPill}${onlineSpan}</div>
       </div>
       <div class="m-right">
         <button class="like-btn ${iLiked?'on':''}" onclick='event.stopPropagation();toggleLike("${u.id}")' aria-label="Me gusta" title="${iLiked?'Quitar me gusta':'Me gusta'}">${heartSym}</button>
@@ -3604,16 +3765,6 @@ function updateLikeVisuals(){
       tag.className = isMutual ? 'likes-you-tag mutual' : 'likes-you-tag';
       tag.textContent = isMutual ? '💞 Os gustáis' : '❤ Le gustas';
     } else if(tag){ tag.remove(); }
-  });
-}
-
-/* Actualiza el badge de zona de cada ficha en su sitio (sin repintar la lista) */
-function updateZoneVisuals(){
-  document.querySelectorAll('#matchList .match[data-id]').forEach(card=>{
-    const u = roomCache[card.getAttribute('data-id')]; if(!u) return;
-    const slot = card.querySelector('[data-zone-tag]'); if(!slot) return;
-    if(u.zone){ slot.className='zone-tag'; slot.innerHTML='📍 '+esc(u.zone); }
-    else      { slot.className=''; slot.removeAttribute('class'); slot.innerHTML=''; slot.setAttribute('data-zone-tag',''); }
   });
 }
 
@@ -3667,6 +3818,15 @@ async function renderChat(){
           const txt = mine==='me' ? 'Le has mandado una copa 🍻' : 'Te ha mandado una copa 🍻';
           return `<div class="bub ${mine} drink"><span class="ico">🍹</span><span>${txt}</span></div>`;
         }
+        if(isAudioMsg(m.text)){
+          return `<div class="bub ${mine} audio"><audio controls preload="none" src="${esc(audioMsgUrl(m.text))}" style="max-width:230px"></audio></div>`;
+        }
+        if(isMeetMsg(m.text)){
+          const z = meetZone(m.text);
+          const txt = mine==='me' ? `Le has propuesto quedar en <b>${esc(z)}</b>` : `Te propone quedar en <b>${esc(z)}</b>`;
+          const btn = mine==='them' ? `<button class="meet-go" onclick='confirmMeet(this,${JSON.stringify(z)})'>✅ ¡Allí estaré!</button>` : '';
+          return `<div class="bub ${mine} meet"><span>📍 ${txt}</span>${btn}</div>`;
+        }
         return isImageMsg(m.text)
           ? `<div class="bub ${mine} img"><img src="${m.text}" onclick="openLightbox(this.src)"></div>`
           : `<div class="bub ${mine}">${esc(m.text)}</div>`;
@@ -3688,6 +3848,30 @@ async function sendDrink(){
   if(!chatWith) return;
   await DB.send(chatWith.id, DRINK_MARK);
   toast('🍹 Copa enviada');
+  renderChat();
+}
+
+/* ════════ PROPONER QUEDAR (sustituye al antiguo "¿Dónde estás?") ════════
+   En vez de difundir tu ubicación a todo el mundo, le propones a UNA persona
+   concreta (con la que ya estás hablando) un punto del local para encontraros. */
+function openMeetPicker(){
+  if(!chatWith) return;
+  const cont = document.getElementById('meetZones');
+  cont.innerHTML = ZONES.map(z=>`<button onclick='proposeMeet(${JSON.stringify(z)})'>${esc(z)}</button>`).join('');
+  document.getElementById('meetPicker').classList.add('on');
+}
+function closeMeetPicker(){ document.getElementById('meetPicker').classList.remove('on'); }
+async function proposeMeet(zone){
+  closeMeetPicker();
+  if(!chatWith) return;
+  await DB.send(chatWith.id, MEET_MARK + zone);
+  toast('📍 Propuesta enviada: ' + zone);
+  renderChat();
+}
+async function confirmMeet(btn, zone){
+  if(btn){ btn.disabled = true; btn.textContent = '✅ ¡Allí estaré!'; }
+  if(!chatWith) return;
+  await DB.send(chatWith.id, '✅ ¡Allí estaré en ' + zone + '!');
   renderChat();
 }
 
@@ -3718,7 +3902,7 @@ async function renderInbox(){
   if(!convs.length){ cont.innerHTML=`<div class="empty"><div class="e-ico">💬</div><div>Aún no tienes chats.</div><div style="margin-top:6px;font-size:.85rem">Abre a alguien desde "Afines" y escríbele.</div></div>`; return; }
   cont.innerHTML=convs.map(c=>{ const u=map[c.other]; if(!u) return '';
     const g=u.gender==='chica'?'g-f':u.gender==='chico'?'g-m':'';
-    const lastRaw = isImageMsg(c.last.text) ? '📷 Foto' : (isDrinkMsg(c.last.text) ? '🍹 Copa' : c.last.text);
+    const lastRaw = isImageMsg(c.last.text) ? '📷 Foto' : (isDrinkMsg(c.last.text) ? '🍹 Copa' : (isAudioMsg(c.last.text) ? '🎤 Mensaje de voz' : (isMeetMsg(c.last.text) ? '📍 Propuesta para quedar en '+meetZone(c.last.text) : c.last.text)));
     const last=esc((c.last.from===me.id?'Tú: ':'')+lastRaw).slice(0,42);
     const badge=c.unread?`<span class="unread">${c.unread>9?'9+':c.unread}</span>`:'';
     return `<div class="match ${g}" onclick='openChatById("${u.id}")'>
@@ -3822,13 +4006,17 @@ async function onGroupMessage(row){
   }
   if(row.from_id !== me.id){
     notify('message');
+    const u = roomCache[row.from_id];
+    const fromName = (u && u.name) || 'Alguien';
+    const isShare = typeof row.content==='string' && row.content.startsWith('__share__');
+    const body = isShare ? 'Ha compartido un perfil con el grupo' :
+                 (isAudioMsg(row.content) ? '🎤 Mensaje de voz' :
+                 (isImageMsg(row.content) ? '📷 Foto' : (row.content||'').slice(0,80)));
+    const gName = groupLabel(code);
     if(document.hidden){
-      const u = roomCache[row.from_id];
-      const fromName = (u && u.name) || 'Alguien';
-      const isShare = typeof row.content==='string' && row.content.startsWith('__share__');
-      const body = isShare ? 'Ha compartido un perfil con el grupo' :
-                   (isImageMsg(row.content) ? '📷 Foto' : (row.content||'').slice(0,80));
-      pushNotify(`👥 ${fromName} (grupo ${code})`, body, 'gmsg-'+(row.id||Date.now()), {kind:'group_message', fromId: row.from_id});
+      pushNotify(`👥 ${fromName} · ${gName}`, body, 'gmsg-'+(row.id||Date.now()), {kind:'group_message', fromId: row.from_id});
+    } else if(!viewingThis){
+      toast(`👥 ${fromName} (${gName}): ${body}`);
     }
   }
 }
@@ -3854,7 +4042,7 @@ async function onRoomChanged(payload){
     else if(payload.new){ upsertRoomUser(payload.new); }
   }
   const cur=document.querySelector('.screen.on'); if(!cur) return;
-  if(cur.id==='screen-matches'){ refreshMatches(); updateZoneVisuals(); updateGroupVisuals(); }
+  if(cur.id==='screen-matches'){ refreshMatches(); updateGroupVisuals(); }
   else if(cur.id==='screen-group'){ renderGroupScreen(); }
   else if(cur.id==='screen-inbox'){ lastInboxSig=''; renderInbox(); }
 }
@@ -3867,12 +4055,13 @@ async function onIncomingMessage(row){
   updateFab();
   if(!inThatChat){
     notify('message');
-    // Notificación de sistema si estoy fuera de la app (pantalla bloqueada, otra pestaña, etc.)
-    if(document.hidden && row){
+    if(row){
       const u = roomCache[row.from_id];
       const name = (u && u.name) || 'Alguien';
-      const body = isImageMsg(row.content) ? '📷 Foto' : (row.content || '').slice(0,80);
-      pushNotify(name, body, 'msg-'+row.from_id, {kind:'message', fromId: row.from_id});
+      const body = isAudioMsg(row.content) ? '🎤 Mensaje de voz' : (isImageMsg(row.content) ? '📷 Foto' : (isMeetMsg(row.content) ? '📍 Te propone quedar en '+meetZone(row.content) : (row.content || '').slice(0,80)));
+      // Notificación de sistema si estoy fuera de la app (pantalla bloqueada, otra pestaña, etc.)
+      if(document.hidden) pushNotify(name, body, 'msg-'+row.from_id, {kind:'message', fromId: row.from_id});
+      else toast(`💬 ${name}: ${body}`);   // siempre hay aviso visible aunque esté en la app
     }
   }
 }
@@ -3917,7 +4106,7 @@ async function tick(){
   const cur=document.querySelector('.screen.on'); if(!cur) return;
   if(cur.id==='screen-welcome'){ updateWelcomeSocial(); return; }
   if(!me) return;
-  if(cur.id==='screen-matches'){ await loadRoomFull(); await loadBlocks(); await onLikesChanged(); await loadInvites(); refreshMatches(); updateZoneVisuals(); updateGroupVisuals(); }
+  if(cur.id==='screen-matches'){ await loadRoomFull(); await loadBlocks(); await onLikesChanged(); await loadInvites(); refreshMatches(); updateGroupVisuals(); }
   else if(cur.id==='screen-chat'){ renderChat(); await onLikesChanged(); await loadInvites(); }
   else if(cur.id==='screen-inbox'){ renderInbox(); await onLikesChanged(); await loadInvites(); }
   else if(cur.id==='screen-group'){ await loadRoomFull(); await loadInvites(); await onLikesChanged(); renderGroupScreen(); }
@@ -4034,7 +4223,8 @@ function startPolling(){
 /* expose */
 Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick,show,
   openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,setGenderFilter,openMatches,openInbox,toggleLike,
-  openLightbox,closeLightbox,setZone,celebrate,closeCelebrate,celebrateToChat,
+  openLightbox,closeLightbox,celebrate,closeCelebrate,celebrateToChat,
+  openMeetPicker,closeMeetPicker,proposeMeet,confirmMeet,startVoiceRecording,cancelVoiceRecording,stopAndSendVoiceRecording,
   toggleChatMenu,blockCurrent,blockUser,unblockUser,
   leaveGroup,copyGroupCode,
   openMyProfile,closeMyProfile,saveMyProfile,setMyGender,zoomMyPhoto,
