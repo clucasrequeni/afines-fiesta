@@ -348,6 +348,15 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .bub.them{align-self:flex-start;background:var(--card);border:1px solid var(--card-line);border-bottom-left-radius:5px}
 .chat-empty{text-align:center;color:var(--muted);margin:auto;font-size:.9rem;padding:20px}
 .chat-input{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--card-line)}
+.chat-attach-wrap{position:relative;flex:none}
+.attach-toggle{width:50px;height:50px;border-radius:50%;border:1.5px solid var(--card-line);background:var(--card);color:var(--ink);font-size:1.7rem;font-weight:300;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .16s,border-color .16s,color .16s}
+.attach-toggle:hover{border-color:var(--cyan)}
+.attach-toggle.on{border-color:var(--pink);color:var(--pink);transform:rotate(45deg)}
+.chat-attach-menu{position:absolute;left:0;bottom:62px;background:#160f29;border:1px solid var(--card-line);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.55);padding:6px;min-width:220px;z-index:10;display:none;flex-direction:column;animation:fade .18s both}
+.chat-attach-menu.on{display:flex}
+.chat-attach-menu button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;color:var(--ink);font-family:inherit;font-size:.95rem;padding:11px 14px;border-radius:10px;cursor:pointer}
+.chat-attach-menu button:hover{background:rgba(255,46,139,.16);color:var(--pink)}
+.chat-attach-menu .ico{font-size:1.15rem;width:22px;text-align:center;flex:none}
 .chat-menu-btn{flex:none;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--card-line);background:transparent;color:var(--ink);font-size:1.2rem;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center}
 .chat-menu-btn:hover{border-color:var(--pink);color:var(--pink)}
 .chat-menu{position:absolute;right:14px;top:60px;background:#160f29;border:1px solid var(--card-line);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.55);padding:6px;min-width:200px;z-index:10;display:none;animation:fade .18s both}
@@ -900,10 +909,15 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     <div class="msgs" id="msgs"></div>
     <div class="typing-row" id="typingRow"></div>
     <div class="chat-input">
-      <button class="attach" onclick="sendDrink()" title="Mándale una copa">🍹</button>
-      <button class="attach" onclick="openCamera('chat','chatPhoto')" title="Enviar foto">📷</button>
-      <button class="attach" onclick="startVoiceRecording('chat')" title="Mensaje de voz">🎤</button>
-      <button class="attach" onclick="openMeetPicker()" title="Proponer quedar">📍</button>
+      <div class="chat-attach-wrap">
+        <button class="attach-toggle" id="chatAttachToggle" onclick="toggleChatAttachMenu(event)" title="Más opciones">+</button>
+        <div class="chat-attach-menu" id="chatAttachMenu">
+          <button onclick="chatAttachAction('drink')"><span class="ico">🍹</span> Mándale una copa</button>
+          <button onclick="chatAttachAction('photo')"><span class="ico">📷</span> Enviar foto</button>
+          <button onclick="chatAttachAction('voice')"><span class="ico">🎤</span> Mensaje de voz</button>
+          <button onclick="chatAttachAction('meet')"><span class="ico">📍</span> Proponer quedar</button>
+        </div>
+      </div>
       <input type="file" id="chatPhoto" accept="image/*" style="display:none">
       <input class="input" id="chatInput" placeholder="Escribe algo…" autocomplete="off" oninput="onChatTyping()" onkeydown="if(event.key==='Enter')sendMsg()">
       <button class="send" onclick="sendMsg()">➤</button>
@@ -2741,6 +2755,32 @@ document.addEventListener('click', (e)=>{
   if(m.classList.contains('on') && !e.target.closest('.chat-menu') && !e.target.closest('.chat-menu-btn')){ m.classList.remove('on'); }
 });
 
+/* ════════ MENÚ DESPLEGABLE DE OPCIONES DEL CHAT (copa/foto/audio/quedar) ════════ */
+function toggleChatAttachMenu(e){
+  if(e){ e.stopPropagation(); }
+  const m=document.getElementById('chatAttachMenu'); const t=document.getElementById('chatAttachToggle');
+  if(!m) return;
+  m.classList.toggle('on');
+  if(t) t.classList.toggle('on', m.classList.contains('on'));
+}
+function closeChatAttachMenu(){
+  const m=document.getElementById('chatAttachMenu'); const t=document.getElementById('chatAttachToggle');
+  if(m) m.classList.remove('on');
+  if(t) t.classList.remove('on');
+}
+function chatAttachAction(kind){
+  closeChatAttachMenu();
+  if(kind==='drink') sendDrink();
+  else if(kind==='photo') openCamera('chat','chatPhoto');
+  else if(kind==='voice') startVoiceRecording('chat');
+  else if(kind==='meet') openMeetPicker();
+}
+/* Cerrar el desplegable al pinchar fuera */
+document.addEventListener('click', (e)=>{
+  const m=document.getElementById('chatAttachMenu'); if(!m) return;
+  if(m.classList.contains('on') && !e.target.closest('.chat-attach-wrap')){ closeChatAttachMenu(); }
+});
+
 function blockCurrent(){
   toggleChatMenu();
   if(!chatWith) return;
@@ -4225,7 +4265,7 @@ Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick
   openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,setGenderFilter,openMatches,openInbox,toggleLike,
   openLightbox,closeLightbox,celebrate,closeCelebrate,celebrateToChat,
   openMeetPicker,closeMeetPicker,proposeMeet,confirmMeet,startVoiceRecording,cancelVoiceRecording,stopAndSendVoiceRecording,
-  toggleChatMenu,blockCurrent,blockUser,unblockUser,
+  toggleChatMenu,blockCurrent,blockUser,unblockUser,toggleChatAttachMenu,closeChatAttachMenu,chatAttachAction,
   leaveGroup,copyGroupCode,
   openMyProfile,closeMyProfile,saveMyProfile,setMyGender,zoomMyPhoto,
   openGroupScreen,closeGroupScreen,sendInvite,acceptCurrentInvite,rejectCurrentInvite,setActiveGroup,
