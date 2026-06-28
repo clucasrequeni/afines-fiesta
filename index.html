@@ -760,6 +760,16 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     </div>
   </section>
 
+  <!-- SALA NO EXISTE -->
+  <section class="screen" id="screen-novenue">
+    <div class="missed-card">
+      <div class="missed-ico">🔍</div>
+      <h1 class="missed-title">Esta sala no existe</h1>
+      <p class="missed-sub">No hay ninguna fiesta activa en <b id="noVenueName">esta sala</b> ahora mismo.<br>Puede que el enlace sea incorrecto o que la fiesta aún no esté abierta.</p>
+      <div class="missed-tip">Asegúrate de escanear el QR oficial del local donde estás.</div>
+    </div>
+  </section>
+
   <!-- WELCOME -->
   <section class="screen on" id="screen-welcome">
     <div class="logo-dot"></div>
@@ -2196,7 +2206,28 @@ async function init(){
   registerSW();           // 🔔 registra el Service Worker (lo necesita Web Push)
   setupNotifRouting();    // 🎯 escucha clics en notificaciones
   await initSupabase();
+  // 🔒 Validar la sala: solo se entra si el venue existe y está activo.
+  // Excepción: el modo prueba (sin ?venue=) siempre entra, para poder testear.
+  if(SB_READY && VENUE_NAME !== VENUE_FALLBACK){
+    let ok = true;
+    try{
+      const { data, error } = await sb.rpc('venue_exists', { p_code: PARTY_CODE });
+      if(!error) ok = !!data;
+    }catch(e){ /* si falla la comprobación, dejamos entrar para no bloquear por un fallo de red */ }
+    if(!ok){ showNoVenueScreen(); return; }
+  }
   await enterParty();
+}
+
+/* Pantalla cuando la sala del ?venue= no existe o está desactivada */
+function showNoVenueScreen(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  const el = document.getElementById('screen-novenue');
+  if(el){
+    const nm = document.getElementById('noVenueName');
+    if(nm) nm.textContent = VENUE_NAME || '';
+    el.classList.add('on');
+  }
 }
 
 /* ════════ REDES SOCIALES ════════
