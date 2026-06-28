@@ -1434,6 +1434,15 @@ const DB = {
     if(me.groups && me.groups.length) me.answers._groups = me.groups; else delete me.answers._groups;
     const primaryGroup = (me.groups && me.groups[0]) || '';
     if(SB_READY){
+      // 🧹 Borrar mi ficha de CUALQUIER OTRO local de esta misma noche.
+      // Como mi id es el mismo en todos los locales (login anónimo), si entré
+      // antes a otro local mi perfil seguiría visible allí. Esto evita que las
+      // personas de un local aparezcan en la sala de otro.
+      try{
+        await sb.from('party_users').delete()
+          .eq('night',TODAY).eq('profile_id',me.id).neq('party_code',PARTY_CODE);
+      }catch(e){ console.warn('[clean other venues]', e); }
+
       const { error } = await sb.from('party_users').upsert({
         party_code:PARTY_CODE, night:TODAY, profile_id:me.id,
         name:me.name, age:me.age, gender:me.gender, photo:me.photo||'',
@@ -1525,11 +1534,18 @@ const DB = {
       });
     }catch(e){ /* las métricas nunca rompen la experiencia */ }
   },
+  /* 🔄 Trasladar mi actividad de un id anónimo viejo al nuevo (likes, mensajes,
+     perfil) cuando la sesión cambia. Se hace vía función segura en Supabase. */
+  async migrateIdentity(oldId, newId){
+    if(!SB_READY || !sb || !oldId || !newId || oldId===newId) return;
+    try{ await sb.rpc('migrate_identity', { p_old_id: oldId, p_new_id: newId }); }
+    catch(e){ console.warn('[migrate_identity]', e); }
+  },
   /* 🚩 REPORTES (se guardan para que el equipo los revise) */
   async addReport(toId, reason){
     if(SB_READY){
       const { error } = await sb.from('party_reports').insert({
-        party_code:PARTY_CODE, night:TODAY, from_id:me.id, to_id:toId, reason:reason||''
+        from_id:me.id, to_id:toId, reason:reason||''
       });
       if(error){ console.warn('[SB addReport]', error.message); return false; }
       return true;
@@ -2297,7 +2313,13 @@ async function enterParty(){
     me.reads = me.reads || {};
     // Migración: de un solo grupo (groupCode) a varios (groups[])
     if(!Array.isArray(me.groups)) me.groups = me.groupCode ? [me.groupCode] : [];
-    if(SB_READY && AUTH_ID && me.id!==AUTH_ID){ me.id = AUTH_ID; saveMeLocal(); }
+    // Si la sesión anónima cambió de id, trasladamos mis likes/mensajes del id
+    // viejo al nuevo para no "perder" lo que ya había hecho esta noche.
+    if(SB_READY && AUTH_ID && me.id!==AUTH_ID){
+      const oldId = me.id;
+      me.id = AUTH_ID; saveMeLocal();
+      try{ await DB.migrateIdentity(oldId, AUTH_ID); }catch(e){ console.warn('[migrate id]', e); }
+    }
     // 🚫 ¿El operador del local me ha expulsado? → fuera de la fiesta
     if(await isBannedNow()){ showBannedScreen(); return; }
     if(me.name) await publishMe();
@@ -4109,12 +4131,12 @@ function setupRealtime(){
   // Mensajes dirigidos SOLO a mí (las fotos ajenas nunca llegan a mi móvil)
   rtChannel.on('postgres_changes',
     { event:'INSERT', schema:'public', table:'party_messages', filter:'to_id=eq.'+me.id },
-    (p)=>onIncomingMessage(p && p.new));
+    (p)=>{ const r=p&&p.new; if(r && r.party_code===PARTY_CODE && r.night===TODAY) onIncomingMessage(r); });
 
-  // Me gusta dirigidos a mí
+  // Me gusta dirigidos a mí (solo de este local y esta noche)
   rtChannel.on('postgres_changes',
     { event:'*', schema:'public', table:'party_likes', filter:'to_id=eq.'+me.id },
-    ()=>onLikesChanged());
+    (p)=>{ const r=(p&&(p.new||p.old))||{}; if(r.party_code===PARTY_CODE && r.night===TODAY) onLikesChanged(); });
 
   // 🚫 Bloqueos que YO hago (sincroniza entre mis dispositivos)
   rtChannel.on('postgres_changes',
