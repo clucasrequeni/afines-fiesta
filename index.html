@@ -910,11 +910,11 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       <button class="dismiss" onclick="dismissNotifBanner()" aria-label="Cerrar">✕</button>
     </div>
     <div class="chips" id="chips">
-      <button class="chip on" data-f="todos" onclick="toggleFilter('todos')">Todos</button>
-      <button class="chip" data-f="chica" onclick="toggleFilter('chica')">Chicas</button>
-      <button class="chip" data-f="chico" onclick="toggleFilter('chico')">Chicos</button>
-      <button class="chip" data-f="iLike" onclick="toggleFilter('iLike')">❤ Me gustan</button>
-      <button class="chip" data-f="likesMe" onclick="toggleFilter('likesMe')">⭐ Les gustas</button>
+      <button class="chip on" data-f="todos" onclick="toggleChip('todos')">Todos</button>
+      <button class="chip" data-f="chica" onclick="toggleChip('chica')">Chicas</button>
+      <button class="chip" data-f="chico" onclick="toggleChip('chico')">Chicos</button>
+      <button class="chip" data-f="iLike" onclick="toggleChip('iLike')">❤ Me gustan</button>
+      <button class="chip" data-f="likesMe" onclick="toggleChip('likesMe')">⭐ Les gustas</button>
       <button class="chip filters-gear" id="filtersGear" onclick="openFilterPanel()" title="Filtros avanzados" aria-label="Filtros avanzados">⚙</button>
     </div>
     <div id="matchList"></div>
@@ -3088,7 +3088,7 @@ function affinity(a,b){
    Se pueden activar varios a la vez. "Todos" lo limpia todo. */
 const activeChips = new Set();   // contiene 'chica','chico','iLike','likesMe'
 
-function toggleFilter(f){
+function toggleChip(f){
   if(f==='todos'){
     activeChips.clear();
   } else {
@@ -4522,7 +4522,7 @@ function startPolling(){
 
 /* expose */
 Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick,show,
-  openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,toggleFilter,openMatches,openInbox,toggleLike,
+  openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,toggleChip,openMatches,openInbox,toggleLike,
   openLightbox,closeLightbox,celebrate,closeCelebrate,celebrateToChat,
   openMeetPicker,closeMeetPicker,proposeMeet,confirmMeet,startVoiceRecording,cancelVoiceRecording,stopAndSendVoiceRecording,
   toggleChatMenu,blockCurrent,blockUser,unblockUser,toggleChatAttachMenu,closeChatAttachMenu,chatAttachAction,
