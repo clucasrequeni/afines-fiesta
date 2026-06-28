@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Afines · Operador del local</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#08060f; --panel:#120e20; --line:rgba(255,255,255,.08);
+    --ink:#fdfcff; --muted:#9b91bb;
+    --pink:#ff2e8b; --blue:#3a8cff; --violet:#8b5cff; --cyan:#27e0d6;
+    --green:#3ad17e; --amber:#ffb23f; --red:#ff5470;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:20px 16px 60px}
+  .wrap{max-width:860px;margin:0 auto}
+
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px}
+  h1{font-size:1.4rem;font-weight:800;letter-spacing:-.02em}
+  h1 span{background:linear-gradient(105deg,var(--pink),var(--amber));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:.9rem;margin-bottom:22px}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--green);font-weight:600}
+  .live::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(58,209,126,.6);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(58,209,126,.5)}70%{box-shadow:0 0 0 8px rgba(58,209,126,0)}100%{box-shadow:0 0 0 0 rgba(58,209,126,0)}}
+
+  /* Login */
+  .gate{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;max-width:420px;margin:60px auto 0}
+  .gate h2{font-size:1.1rem;margin-bottom:6px}
+  .gate p{color:var(--muted);font-size:.88rem;margin-bottom:18px}
+  label{display:block;font-size:.78rem;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.05em}
+  input{width:100%;padding:13px 14px;background:#0c0918;border:1.5px solid var(--line);border-radius:12px;color:var(--ink);font-size:1rem;font-family:inherit}
+  input:focus{outline:none;border-color:var(--pink)}
+  .btn{width:100%;margin-top:18px;padding:14px;border:none;border-radius:12px;background:linear-gradient(105deg,var(--pink),var(--violet));color:#fff;font-weight:700;font-size:1rem;cursor:pointer}
+  .btn:active{transform:scale(.99)}
+  .btn-sm{width:auto;margin:0;padding:9px 16px;font-size:.85rem;border-radius:10px}
+  .err{color:var(--red);font-size:.85rem;margin-top:12px;min-height:1.2em}
+
+  /* Stats grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .card .n{font-size:2.1rem;font-weight:800;line-height:1;letter-spacing:-.02em}
+  .card .l{font-size:.82rem;color:var(--muted);margin-top:7px}
+  .card.pink .n{color:var(--pink)} .card.blue .n{color:var(--blue)}
+  .card.violet .n{color:var(--violet)} .card.cyan .n{color:var(--cyan)}
+  .card.green .n{color:var(--green)} .card.amber .n{color:var(--amber)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:560px){.split{grid-template-columns:1fr}}
+
+  .section-t{font-size:.8rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:24px 0 10px;font-weight:700}
+
+  /* Funnel bars */
+  .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+  .bar-label{width:140px;font-size:.85rem;color:var(--muted);flex-shrink:0}
+  .bar-track{flex:1;height:24px;background:#0c0918;border-radius:8px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding:0 8px;font-size:.78rem;font-weight:700;color:#fff;min-width:24px;transition:width .6s ease}
+
+  /* Reports */
+  .report{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:8px}
+  .report .who{font-size:.9rem}
+  .report .who b{color:var(--amber)}
+  .report .meta{font-size:.78rem;color:var(--muted);margin-top:2px}
+  .ban-btn{padding:8px 14px;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:9px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap}
+  .ban-btn:active{background:rgba(255,84,112,.15)}
+  .ban-btn:disabled{opacity:.4;cursor:default}
+  .empty{color:var(--muted);font-size:.88rem;padding:18px;text-align:center;background:var(--panel);border:1px dashed var(--line);border-radius:12px}
+
+  .foot{margin-top:30px;color:var(--muted);font-size:.78rem;text-align:center;line-height:1.6}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ░░ LOGIN ░░ -->
+  <div id="gate" class="gate">
+    <h2>Panel del local</h2>
+    <p>Acceso solo para el personal del local. Introduce el nombre del local y la clave de operador.</p>
+    <label for="venueIn">Nombre del local (igual que en el QR)</label>
+    <input id="venueIn" placeholder="Sala Apolo" autocomplete="off">
+    <label for="keyIn">Clave de operador</label>
+    <input id="keyIn" type="password" placeholder="••••••••" autocomplete="off">
+    <button class="btn" onclick="login()">Entrar</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <!-- ░░ DASHBOARD ░░ -->
+  <div id="dash" class="hidden">
+    <header>
+      <div>
+        <h1><span>Afines</span> · panel del local</h1>
+      </div>
+      <span class="live">En directo · se actualiza solo</span>
+    </header>
+    <div class="sub" id="venueLabel"></div>
+
+    <div class="grid">
+      <div class="card pink"><div class="n" id="sChicas">–</div><div class="l">Chicas</div></div>
+      <div class="card blue"><div class="n" id="sChicos">–</div><div class="l">Chicos</div></div>
+      <div class="card violet"><div class="n" id="sOtros">–</div><div class="l">Otros</div></div>
+      <div class="card cyan"><div class="n" id="sTotal">–</div><div class="l">Perfiles totales</div></div>
+    </div>
+    <div class="grid">
+      <div class="card green"><div class="n" id="sMsgs">–</div><div class="l">Mensajes enviados</div></div>
+      <div class="card amber"><div class="n" id="sLikes">–</div><div class="l">Me gusta</div></div>
+      <div class="card pink"><div class="n" id="sMatches">–</div><div class="l">Matches</div></div>
+      <div class="card cyan"><div class="n" id="sFoto">–</div><div class="l">Con foto · edad media <span id="sEdad">–</span></div></div>
+    </div>
+
+    <div class="section-t">Embudo de la noche</div>
+    <div id="funnel"></div>
+
+    <div class="section-t">Reportes de usuarios</div>
+    <div id="reports"><div class="empty">Sin reportes esta noche.</div></div>
+
+    <div class="foot">
+      Los datos se borran solos al final de la noche. Este panel solo muestra recuentos, sin nombres ni fotos.<br>
+      <button class="btn btn-sm" style="margin-top:12px;background:#1a1530" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════ CONFIG ════════
+const SUPABASE_URL  = "https://nhnxpmjlmjmfyhnyupzh.supabase.co";
+const SUPABASE_ANON = "sb_publishable_wBIfhp-WXHLAKB4oz-yPmg__UoEg5HY";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let ADMIN_KEY = "";
+let PARTY_CODE = "";
+let VENUE_NAME = "";
+let timer = null;
+
+const TODAY = (()=>{ // mismo corte que la app: la "noche" cambia a las 17h
+  const d = new Date();
+  if(d.getHours() < 17) d.setDate(d.getDate()-1);
+  return d.toISOString().slice(0,10);
+})();
+
+function codeFromVenue(name){
+  return (name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'').toUpperCase()) || 'AFINES';
+}
+
+async function login(){
+  const venue = document.getElementById('venueIn').value.trim();
+  const key   = document.getElementById('keyIn').value;
+  const err   = document.getElementById('loginErr');
+  err.textContent = '';
+  if(!venue || !key){ err.textContent = 'Completa los dos campos.'; return; }
+
+  VENUE_NAME = venue;
+  PARTY_CODE = codeFromVenue(venue);
+  ADMIN_KEY  = key;
+
+  // Validamos la clave intentando leer reportes (la función rechaza clave incorrecta)
+  const { data, error } = await sb.rpc('admin_get_reports', {
+    p_admin_key: ADMIN_KEY, p_party_code: PARTY_CODE, p_night: TODAY
+  });
+  if(error){ err.textContent = 'No se pudo conectar. Revisa tu conexión.'; return; }
+  if(data === null){ err.textContent = 'Clave de operador incorrecta.'; return; }
+
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('dash').classList.remove('hidden');
+  document.getElementById('venueLabel').textContent = VENUE_NAME + ' · noche del ' + TODAY;
+  refresh();
+  timer = setInterval(refresh, 8000); // refresco automático cada 8s
+}
+
+function logout(){
+  if(timer) clearInterval(timer);
+  ADMIN_KEY = ""; PARTY_CODE = ""; VENUE_NAME = "";
+  document.getElementById('dash').classList.add('hidden');
+  document.getElementById('gate').classList.remove('hidden');
+  document.getElementById('keyIn').value = "";
+}
+
+async function refresh(){
+  await Promise.all([loadStats(), loadActivity(), loadFunnel(), loadReports()]);
+}
+
+function setN(id, v){ const el=document.getElementById(id); if(el) el.textContent = (v==null?'0':v); }
+
+async function loadStats(){
+  const { data } = await sb.from('party_live_stats').select('*')
+    .eq('party_code',PARTY_CODE).eq('night',TODAY).maybeSingle();
+  const d = data || {};
+  setN('sChicas', d.chicas); setN('sChicos', d.chicos); setN('sOtros', d.otros);
+  setN('sTotal', d.total_perfiles); setN('sFoto', d.con_foto);
+  setN('sEdad', d.edad_media || '–');
+}
+
+async function loadActivity(){
+  const [m, l] = await Promise.all([
+    sb.from('party_activity_stats').select('total').eq('party_code',PARTY_CODE).eq('night',TODAY).maybeSingle(),
+    sb.from('party_likes_stats').select('total').eq('party_code',PARTY_CODE).eq('night',TODAY).maybeSingle()
+  ]);
+  setN('sMsgs', m.data && m.data.total);
+  setN('sLikes', l.data && l.data.total);
+}
+
+async function loadFunnel(){
+  const { data } = await sb.from('party_funnel').select('*')
+    .eq('party_code',PARTY_CODE).eq('night',TODAY).maybeSingle();
+  const d = data || {};
+  setN('sMatches', d.matches_totales);
+  const steps = [
+    { l:'Abrieron la app',    v:d.abrieron_app||0,      c:'var(--cyan)' },
+    { l:'Perfil completado',  v:d.perfil_completado||0, c:'var(--violet)' },
+    { l:'Dieron me gusta',    v:d.dieron_like||0,       c:'var(--pink)' },
+    { l:'Enviaron mensaje',   v:d.primer_mensaje||0,    c:'var(--blue)' },
+    { l:'Matches',            v:d.matches_totales||0,   c:'var(--green)' },
+  ];
+  const max = Math.max(1, ...steps.map(s=>s.v));
+  document.getElementById('funnel').innerHTML = steps.map(s=>{
+    const pct = Math.round((s.v/max)*100);
+    return `<div class="bar-row">
+      <div class="bar-label">${s.l}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct,6)}%;background:${s.c}">${s.v}</div></div>
+    </div>`;
+  }).join('');
+}
+
+async function loadReports(){
+  const { data, error } = await sb.rpc('admin_get_reports', {
+    p_admin_key: ADMIN_KEY, p_party_code: PARTY_CODE, p_night: TODAY
+  });
+  const cont = document.getElementById('reports');
+  if(error || !data || data.length===0){
+    cont.innerHTML = '<div class="empty">Sin reportes esta noche.</div>';
+    return;
+  }
+  cont.innerHTML = data.map(r=>{
+    const short = (r.to_id||'').slice(0,8);
+    return `<div class="report">
+      <div>
+        <div class="who"><b>${r.reportes}</b> reporte${r.reportes>1?'s':''} · usuario <code>${short}…</code></div>
+        <div class="meta">Motivo: ${escapeHtml(r.reason||'sin especificar')}</div>
+      </div>
+      <button class="ban-btn" onclick="banUser('${r.to_id}', this)">Expulsar</button>
+    </div>`;
+  }).join('');
+}
+
+async function banUser(profileId, btn){
+  if(!confirm('¿Expulsar a este usuario de la fiesta de esta noche?\n\nDesaparecerá de la sala y no podrá volver a entrar hasta mañana.')) return;
+  btn.disabled = true; btn.textContent = 'Expulsando…';
+  const { data, error } = await sb.rpc('admin_ban_user', {
+    p_admin_key: ADMIN_KEY, p_party_code: PARTY_CODE, p_night: TODAY,
+    p_profile_id: profileId, p_reason: 'Expulsado desde el panel'
+  });
+  if(error || data !== 'OK'){
+    btn.disabled = false; btn.textContent = 'Expulsar';
+    alert('No se pudo expulsar. Revisa tu conexión o la clave.');
+    return;
+  }
+  btn.textContent = 'Expulsado ✓';
+  setTimeout(refresh, 600);
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Enter para enviar el login
+document.getElementById('keyIn').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); });
+</script>
+</body>
+</html>
