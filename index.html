@@ -3092,6 +3092,9 @@ function toggleChip(f){
   if(f==='todos'){
     activeChips.clear();
   } else {
+    // Chico y chica son excluyentes: al activar uno, se quita el otro
+    if(f==='chica' && activeChips.has('chico')) activeChips.delete('chico');
+    if(f==='chico' && activeChips.has('chica')) activeChips.delete('chica');
     if(activeChips.has(f)) activeChips.delete(f); else activeChips.add(f);
   }
   // pintar estado de los chips
