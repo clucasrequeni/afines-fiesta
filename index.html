@@ -695,6 +695,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 /* POP-UP DE INVITACIÓN ENTRANTE */
 #invitePopup{position:fixed;inset:0;z-index:85;background:rgba(8,6,15,.86);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:24px;animation:fade .25s both}
 #invitePopup.on{display:flex}
+#groupNamePopup{position:fixed;inset:0;z-index:86;background:rgba(8,6,15,.86);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:24px;animation:fade .25s both}
+#groupNamePopup.on{display:flex}
 .invite-card{max-width:380px;width:100%;background:#1a1130;border:1px solid var(--card-line);border-radius:24px;padding:26px 22px;text-align:center;animation:mcPop .45s cubic-bezier(.2,.9,.3,1.15) both}
 .invite-card .ico{font-size:2.6rem;margin-bottom:10px}
 .invite-card .ttl{font-family:'Unbounded',sans-serif;font-weight:700;font-size:1.25rem;margin-bottom:8px}
@@ -885,10 +887,11 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       <button class="dismiss" onclick="dismissNotifBanner()" aria-label="Cerrar">✕</button>
     </div>
     <div class="chips" id="chips">
-      <button class="chip on" data-g="todos" onclick="setGenderFilter('todos')">Todos</button>
-      <button class="chip" data-g="chica" onclick="setGenderFilter('chica')">Chicas</button>
-      <button class="chip" data-g="chico" onclick="setGenderFilter('chico')">Chicos</button>
-      <button class="chip" data-g="likes" onclick="setGenderFilter('likes')">❤ Te gustan</button>
+      <button class="chip on" data-f="todos" onclick="toggleFilter('todos')">Todos</button>
+      <button class="chip" data-f="chica" onclick="toggleFilter('chica')">Chicas</button>
+      <button class="chip" data-f="chico" onclick="toggleFilter('chico')">Chicos</button>
+      <button class="chip" data-f="iLike" onclick="toggleFilter('iLike')">❤ Me gustan</button>
+      <button class="chip" data-f="likesMe" onclick="toggleFilter('likesMe')">⭐ Les gustas</button>
       <button class="chip filters-gear" id="filtersGear" onclick="openFilterPanel()" title="Filtros avanzados" aria-label="Filtros avanzados">⚙</button>
     </div>
     <div id="matchList"></div>
@@ -1028,6 +1031,20 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     <div class="actions">
       <button class="btn ghost" onclick="rejectCurrentInvite()">Rechazar</button>
       <button class="btn" onclick="acceptCurrentInvite()">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PONER NOMBRE AL GRUPO (sustituye al prompt feo del navegador) -->
+<div id="groupNamePopup">
+  <div class="invite-card">
+    <div class="ico">✨</div>
+    <div class="ttl">Ponle nombre a tu grupo</div>
+    <div class="sub">Así tus amigos verán a qué grupo se unen. Puedes cambiarlo luego.</div>
+    <input id="groupNameField" class="input" maxlength="24" placeholder="Ej: Las del cumple, Equipo terraza…" style="margin:14px 0 4px;text-align:center" autocomplete="off">
+    <div class="actions">
+      <button class="btn ghost" onclick="cancelGroupName()">Cancelar</button>
+      <button class="btn" onclick="confirmGroupName()">Crear grupo</button>
     </div>
   </div>
 </div>
@@ -1770,7 +1787,7 @@ const DB = {
 let me = null, qIndex = 0, acSelected = null, chatWith = null, poller = null;
 let rtChannel = null, REALTIME_OK = false, rtForId = null;   // tiempo real
 let roomCache = {}, roomLoaded = false;                       // caché de la sala (se actualiza por persona)
-let genderFilter = 'todos', chatReturn = 'screen-matches';
+let chatReturn = 'screen-matches';
 let questionsBackScreen = 'screen-profile', finishingOnboardingPhoto = false;   // a dónde volver desde la pregunta 1 / foto final del alta
 let activeFilters = { estado:new Set(), estilo:new Set(), despues:new Set() };
 let onlineUsers = new Set();
@@ -1893,7 +1910,8 @@ function closeLightbox(e){
   lb.classList.remove('on');
   document.getElementById('lightboxImg').src='';
 }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLightbox(); closeCelebrate(); closePhotoCard(); closeReport(); closePrivacy(); closeCamera(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeLightbox(); closeCelebrate(); closePhotoCard(); closeReport(); closePrivacy(); closeCamera(); const gn=document.getElementById('groupNamePopup'); if(gn) gn.classList.remove('on'); } });
+(function(){ const f=document.getElementById('groupNameField'); if(f){ f.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); confirmGroupName(); } }); } })();
 
 /* ════════ AVISOS (vibración + sonido) ════════ */
 let _ac=null;
@@ -3016,10 +3034,26 @@ function affinity(a,b){
 }
 
 /* ════════ AFINES ════════ */
-function setGenderFilter(g){
-  // si pulso el filtro que ya está activo (y no es "todos"), se quita solo y vuelve a "todos"
-  if(g===genderFilter && g!=='todos') g='todos';
-  genderFilter=g; lastMatchSig=''; document.querySelectorAll('#chips .chip:not(.filters-gear)').forEach(c=>c.classList.toggle('on',c.dataset.g===g)); refreshMatches();
+/* Filtros combinables. Dos dimensiones independientes:
+   - género: 'chica' y/o 'chico' (si ninguno → todos los géneros)
+   - likes:  'iLike' (los que me gustan) y/o 'likesMe' (los que les gusto)
+   Se pueden activar varios a la vez. "Todos" lo limpia todo. */
+const activeChips = new Set();   // contiene 'chica','chico','iLike','likesMe'
+
+function toggleFilter(f){
+  if(f==='todos'){
+    activeChips.clear();
+  } else {
+    if(activeChips.has(f)) activeChips.delete(f); else activeChips.add(f);
+  }
+  // pintar estado de los chips
+  document.querySelectorAll('#chips .chip:not(.filters-gear)').forEach(c=>{
+    const key=c.dataset.f;
+    if(key==='todos') c.classList.toggle('on', activeChips.size===0);
+    else c.classList.toggle('on', activeChips.has(key));
+  });
+  lastMatchSig='';
+  refreshMatches(true);
 }
 
 /* ════════ PRESENCIA EN TIEMPO REAL (sin BBDD) ════════
@@ -3298,11 +3332,22 @@ function setActiveGroup(code){
   markGroupRead(code);
 }
 
-async function createMyGroup(){
+function createMyGroup(){
   if(!me) return;
-  let name = (prompt('¿Qué nombre le quieres poner al grupo?', '') || '').trim();
-  const code = await addNewGroup();
+  const field = document.getElementById('groupNameField');
+  if(field) field.value = '';
+  document.getElementById('groupNamePopup').classList.add('on');
+  setTimeout(()=>{ try{ field && field.focus(); }catch(e){} }, 100);
+}
+function cancelGroupName(){
+  document.getElementById('groupNamePopup').classList.remove('on');
+}
+async function confirmGroupName(){
+  if(!me) return;
+  let name = (document.getElementById('groupNameField').value || '').trim();
   if(!name) name = 'Grupo de ' + (me.name || 'amigos');
+  document.getElementById('groupNamePopup').classList.remove('on');
+  const code = await addNewGroup();
   await DB.setGroupName(code, name);
   groupNames[code] = name;
   groupTab = 'invite';
@@ -3612,9 +3657,14 @@ async function sendInvite(otherId){
   renderGroupScreen();
 }
 
-function showIncomingInvite(inv){
+async function showIncomingInvite(inv){
   if(!inv) return;
   currentIncomingInvite = inv;
+  // Aseguramos tener el nombre real del grupo al que me invitan (puede no estar
+  // cargado todavía, porque aún no soy miembro). Lo refrescamos antes de mostrar.
+  if(inv.group_code && !groupNames[inv.group_code]){
+    try{ await loadGroupNames(); }catch(e){}
+  }
   const u = roomCache[inv.from_id];
   const fromName = (u && u.name) ? u.name : 'Alguien';
   const gName = groupLabel(inv.group_code);
@@ -3637,7 +3687,7 @@ async function acceptCurrentInvite(){
   await DB.updateInviteStatus(inv.id, 'accepted');
   await joinGroup(inv.group_code);     // se UNE sin salir de sus otros grupos
   hideIncomingInvite();
-  toast('Te has unido al grupo ' + (inv.group_code||''));
+  toast('Te has unido a ' + groupLabel(inv.group_code));
   lastMatchSig=''; refreshMatches();
 }
 async function rejectCurrentInvite(){
@@ -3850,8 +3900,13 @@ async function refreshMatches(force){
   let list=room.filter(u=>!isBlocked(u.id))
                .map(u=>({u,a:affinity(me,u)}))
                .sort((x,y)=>y.a.pct-x.a.pct||y.a.n-x.a.n||(x.u.id<y.u.id?-1:1));
-  if(genderFilter==='chica' || genderFilter==='chico') list=list.filter(x=>x.u.gender===genderFilter);
-  else if(genderFilter==='likes') list=list.filter(x=>likes.byMe.has(x.u.id) || likes.toMe.has(x.u.id));
+  // Filtros de chips combinables (género + likes), todos opcionales y acumulables
+  const fGender = [];
+  if(activeChips.has('chica')) fGender.push('chica');
+  if(activeChips.has('chico')) fGender.push('chico');
+  if(fGender.length) list = list.filter(x=>fGender.includes(x.u.gender));
+  if(activeChips.has('iLike'))   list = list.filter(x=>likes.byMe.has(x.u.id));
+  if(activeChips.has('likesMe')) list = list.filter(x=>likes.toMe.has(x.u.id));
   // Filtros avanzados (situación / estilo / plan después)
   if(countActiveFilters()>0) list = list.filter(x=>passesAdvancedFilters(x.u));
 
@@ -3870,7 +3925,7 @@ async function refreshMatches(force){
     const u=x.u;
     return u.id+':'+((u.photo||'').length)+':'+(u.name||'')+':'+(u.age||'')+':'+(u.zone||'')+':'+((u.groups||[]).join('-'))+':'+x.a.pct+':'+(isVerified(u)?'v':'');
   }).join(',');
-  const sig = genderFilter+'|'+peopleSig+'|B'+[...blocks.byMe,'>',...blocks.fromOthers].join(',')+'|'+filtersSig;
+  const sig = [...activeChips].sort().join(',')+'|'+peopleSig+'|B'+[...blocks.byMe,'>',...blocks.fromOthers].join(',')+'|'+filtersSig;
   if(sig===lastMatchSig && !force){
     updateLikeVisuals();
     updatePresenceVisuals();
@@ -3882,8 +3937,8 @@ async function refreshMatches(force){
 
   const cont=document.getElementById('matchList');
   if(!list.length){
-    const txt = genderFilter==='likes'
-      ? 'Aún no has dado ni recibido ningún ❤. Toca el corazón en una ficha para mostrar interés.'
+    const txt = (activeChips.has('iLike') || activeChips.has('likesMe'))
+      ? 'Nadie con ese filtro de ❤ todavía. Toca el corazón en una ficha para mostrar interés.'
       : (countActiveFilters()>0 ? 'Nadie con esos filtros. Prueba a quitar alguno.' : (room.length?'Nadie con ese filtro por ahora.':'Aún no hay nadie más por aquí.'));
     cont.innerHTML=`<div class="empty"><div class="e-ico">🪩</div><div>${esc(txt)}</div><div style="margin-top:6px;font-size:.85rem">${room.length?'':'Diles que escaneen el QR de la fiesta.'}</div></div>`;
     shownIds = new Set();
@@ -3959,7 +4014,8 @@ async function toggleLike(otherId){
   // Actualizamos solo esta ficha en su sitio (sin repintar ni parpadear la lista)
   updateLikeVisuals();
   // En el filtro "❤ Te gustan" sí conviene repintar: la ficha puede entrar o salir de la lista
-  if(genderFilter==='likes'){ refreshMatches(true); }
+  // Si hay un filtro de likes activo, la ficha puede entrar/salir de la lista
+  if(activeChips.has('iLike') || activeChips.has('likesMe')){ refreshMatches(true); }
 }
 
 /* ════════ CHAT ════════ */
@@ -4266,7 +4322,7 @@ async function onLikesChanged(){
     }
   }
   const cur=document.querySelector('.screen.on');
-  if(cur && cur.id==='screen-matches'){ if(genderFilter==='likes') refreshMatches(true); else updateLikeVisuals(); }
+  if(cur && cur.id==='screen-matches'){ if(activeChips.has('iLike')||activeChips.has('likesMe')) refreshMatches(true); else updateLikeVisuals(); }
 }
 
 /* Prueba social en la pantalla de inicio: a partir de 20 conectados */
@@ -4402,7 +4458,7 @@ function startPolling(){
 
 /* expose */
 Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick,show,
-  openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,setGenderFilter,openMatches,openInbox,toggleLike,
+  openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,toggleFilter,openMatches,openInbox,toggleLike,
   openLightbox,closeLightbox,celebrate,closeCelebrate,celebrateToChat,
   openMeetPicker,closeMeetPicker,proposeMeet,confirmMeet,startVoiceRecording,cancelVoiceRecording,stopAndSendVoiceRecording,
   toggleChatMenu,blockCurrent,blockUser,unblockUser,toggleChatAttachMenu,closeChatAttachMenu,chatAttachAction,
@@ -4410,7 +4466,7 @@ Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick
   openMyProfile,closeMyProfile,saveMyProfile,setMyGender,zoomMyPhoto,
   openGroupScreen,closeGroupScreen,sendInvite,acceptCurrentInvite,rejectCurrentInvite,setActiveGroup,
   requestNotifPerm,dismissNotifBanner,toggleNotifs,
-  skipQuestionsTest,createMyGroup,setGroupTab,sendGroupMessage,shareToGroup,
+  skipQuestionsTest,createMyGroup,cancelGroupName,confirmGroupName,setGroupTab,sendGroupMessage,shareToGroup,
   toggleGroupChatMenu,groupMenuAddPeople,groupMenuSharePerfil,openSharePicker,closeSharePicker,pickAndShare,
   showCoincidences,closeCoincPopup,goToQuestionsFromProfile,
   openFilterPanel,closeFilterPanel,toggleFilter,clearFilters,applyFilters,
