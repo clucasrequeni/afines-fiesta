@@ -461,6 +461,10 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 #fabBadge{position:absolute;top:-3px;right:-3px;min-width:23px;height:23px;padding:0 6px;border-radius:12px;background:#fff;color:var(--pink);font-weight:800;font-size:.76rem;display:none;align-items:center;justify-content:center;border:2px solid var(--bg)}
 
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#fff;color:#120c22;padding:12px 22px;border-radius:60px;font-weight:600;font-size:.9rem;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:90%;text-align:center}
+#updateBar{position:fixed;left:0;right:0;top:0;z-index:200;display:none;align-items:center;justify-content:center;gap:14px;padding:11px 18px;background:linear-gradient(105deg,#ff2e8b,#8b5cff);color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(139,92,255,.4);animation:slideDown .35s both}
+#updateBar.on{display:flex}
+#updateBar .ub-btn{background:rgba(255,255,255,.22);padding:5px 14px;border-radius:30px;font-weight:700;font-size:.85rem}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* BOTÓN DE PERFIL (arriba a la derecha en afines) */
@@ -748,6 +752,11 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 </head>
 <body>
 <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+
+<div id="updateBar" onclick="applyUpdate()">
+  <span class="ub-txt">✨ Hay una versión nueva</span>
+  <span class="ub-btn">Actualizar</span>
+</div>
 
 <div id="app">
   <div id="ptr"><span class="ptr-spin"></span></div>
@@ -1306,6 +1315,12 @@ const SUPABASE_ANON_KEY = "sb_publishable_wBIfhp-WXHLAKB4oz-yPmg__UoEg5HY";
 /* Nombre del bucket de Storage para las fotos (créalo PÚBLICO en Supabase → Storage) */
 const BUCKET = "fotos";
 let sb = null, SB_READY = false, AUTH_ID = null;
+
+/* ════════ 🔄 VERSIÓN DE LA APP ════════
+   Sube este número CADA VEZ que publiques cambios importantes (1, 2, 3…).
+   La app compara con version.json del servidor y, si hay una versión más
+   nueva, muestra una barra "Actualiza para ver las novedades". */
+const APP_VERSION = 1;
 
 /* ════════ 🔔 PUSH (clave pública VAPID) ════════
    Esta clave es PÚBLICA y va en el cliente. La privada vive en la Edge Function
@@ -2220,6 +2235,7 @@ async function init(){
   setupSwipeBack();       // → deslizar desde el borde para volver
   fillSocialFooters();    // 📱 iconos de TikTok e Instagram
   watchPartyDayChange();  // ⏰ recarga limpia si cruza las 17:00
+  startVersionWatch();    // 🔄 avisa si hay versión nueva publicada
   registerSW();           // 🔔 registra el Service Worker (lo necesita Web Push)
   setupNotifRouting();    // 🎯 escucha clics en notificaciones
   await initSupabase();
@@ -2312,6 +2328,45 @@ function watchPartyDayChange(){
       window.location.href = u.pathname + (u.search || '');
     }
   }, 60000);   // comprobar cada minuto
+}
+
+/* ════════ 🔄 COMPROBADOR DE VERSIÓN ════════
+   Lee version.json del servidor (saltándose la caché) y, si el número es mayor
+   que el de esta app, muestra la barra "Actualizar". Así un cambio publicado a
+   mitad de noche llega a todos sin que tengan que cerrar y reabrir a ciegas. */
+async function checkVersion(){
+  try{
+    const r = await fetch('version.json?_=' + Date.now(), { cache:'no-store' });
+    if(!r.ok) return;
+    const j = await r.json();
+    if(j && typeof j.version==='number' && j.version > APP_VERSION){
+      const bar = document.getElementById('updateBar');
+      if(bar) bar.classList.add('on');
+    }
+  }catch(e){ /* sin conexión: no pasa nada, se reintenta luego */ }
+}
+
+/* Fuerza la versión nueva: borra cachés y service worker, y recarga limpio */
+async function applyUpdate(){
+  try{
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for(const reg of regs){ try{ await reg.unregister(); }catch(e){} }
+    }
+    if(window.caches){
+      const keys = await caches.keys();
+      for(const k of keys){ try{ await caches.delete(k); }catch(e){} }
+    }
+  }catch(e){}
+  // recarga forzada desde el servidor (no desde caché)
+  location.reload(true);
+}
+
+function startVersionWatch(){
+  checkVersion();                       // comprobar al arrancar
+  setInterval(checkVersion, 120000);    // y cada 2 minutos
+  // también al volver a primer plano (cuando reabren la app)
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkVersion(); });
 }
 
 /* ════════ ROUTING DE NOTIFICACIONES ════════
@@ -4525,7 +4580,7 @@ function startPolling(){
 
 /* expose */
 Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick,show,
-  openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,toggleChip,openMatches,openInbox,toggleLike,
+  openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,toggleChip,openMatches,openInbox,toggleLike,applyUpdate,
   openLightbox,closeLightbox,celebrate,closeCelebrate,celebrateToChat,
   openMeetPicker,closeMeetPicker,proposeMeet,confirmMeet,startVoiceRecording,cancelVoiceRecording,stopAndSendVoiceRecording,
   toggleChatMenu,blockCurrent,blockUser,unblockUser,toggleChatAttachMenu,closeChatAttachMenu,chatAttachAction,
