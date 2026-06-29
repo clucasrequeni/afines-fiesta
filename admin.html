@@ -36,13 +36,19 @@
   .err{color:var(--red);font-size:.85rem;margin-top:12px;min-height:1.2em}
 
   .venues-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 14px;flex-wrap:wrap}
-  .venue-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:border-color .15s}
+  .venue-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:border-color .15s}
   .venue-card:hover{border-color:var(--violet)}
+  .venue-card .vinfo{flex:1;cursor:pointer;min-width:0}
   .venue-card .vn{font-size:1.05rem;font-weight:700}
-  .venue-card .vc{font-size:.78rem;color:var(--muted);margin-top:3px}
+  .venue-card .vc{font-size:.78rem;color:var(--muted);margin-top:3px;word-break:break-all}
+  .venue-card .vactions{display:flex;align-items:center;gap:10px;flex-shrink:0}
   .venue-card .vstate{font-size:.72rem;padding:3px 9px;border-radius:20px;font-weight:600}
   .vstate.on{background:rgba(58,209,126,.15);color:var(--green)}
   .vstate.off{background:rgba(255,84,112,.12);color:var(--red)}
+  .vtoggle{font-size:.8rem;font-weight:700;padding:7px 14px;border-radius:9px;cursor:pointer;font-family:inherit;border:1px solid var(--line);background:transparent}
+  .vtoggle.close{border-color:var(--red);color:var(--red)}
+  .vtoggle.open{border-color:var(--green);color:var(--green)}
+  .vtoggle:active{transform:scale(.97)}
   .add-box{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:16px 18px;margin-bottom:18px}
   .add-row{display:flex;gap:10px;margin-top:10px}
   .add-row input{margin:0}
@@ -178,14 +184,32 @@ function showVenues(list){
     return;
   }
   cont.innerHTML = list.map(v=>`
-    <div class="venue-card" onclick='openVenue(${JSON.stringify(v.party_code)}, ${JSON.stringify(v.name)})'>
-      <div>
+    <div class="venue-card">
+      <div class="vinfo" onclick='openVenue(${JSON.stringify(v.party_code)}, ${JSON.stringify(v.name)})'>
         <div class="vn">${escapeHtml(v.name)}</div>
         <div class="vc">Código: ${escapeHtml(v.party_code)} · enlace: ?venue=${encodeURIComponent(v.name)}</div>
       </div>
-      <span class="vstate ${v.active?'on':'off'}">${v.active?'Activa':'Pausada'}</span>
+      <div class="vactions">
+        <span class="vstate ${v.active?'on':'off'}">${v.active?'Abierta':'Cerrada'}</span>
+        <button class="vtoggle ${v.active?'close':'open'}"
+          onclick='setVenueActive(${JSON.stringify(v.party_code)}, ${v.active?'false':'true'})'>
+          ${v.active?'Cerrar':'Abrir'}
+        </button>
+      </div>
     </div>
   `).join('');
+}
+
+async function setVenueActive(code, makeActive){
+  const txt = makeActive ? 'abrir' : 'cerrar';
+  if(!confirm(`¿Seguro que quieres ${txt} esta sala?\n\n`+(makeActive
+      ? 'La gente podrá volver a entrar con su enlace.'
+      : 'Nadie podrá entrar: verán "esta sala no existe".'))) return;
+  const { data, error } = await sb.rpc('admin_set_venue_active', {
+    p_admin_key: ADMIN_KEY, p_code: code, p_active: makeActive
+  });
+  if(error || data==='CLAVE_INCORRECTA'){ alert('No se pudo cambiar el estado de la sala.'); return; }
+  refreshVenues();
 }
 
 async function createVenue(){
