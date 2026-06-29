@@ -279,6 +279,23 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .empty{text-align:center;color:var(--muted);padding:50px 10px}
 .empty .e-ico{font-size:2.6rem;margin-bottom:14px}
 
+/* 🎉 Bloque "la gente está entrando" (sala con poca gente) */
+#fillRoom{display:none}
+#fillRoom.on{display:block;margin:4px 0 18px}
+.fill-card{background:linear-gradient(160deg,rgba(255,46,139,.12),rgba(139,92,255,.12));border:1px solid rgba(255,46,139,.25);border-radius:20px;padding:24px 20px;text-align:center}
+.fill-pulse{display:flex;justify-content:center;gap:7px;margin-bottom:14px}
+.fill-pulse span{width:9px;height:9px;border-radius:50%;background:var(--pink);opacity:.4;animation:fillpulse 1.2s infinite}
+.fill-pulse span:nth-child(2){animation-delay:.2s;background:var(--violet)}
+.fill-pulse span:nth-child(3){animation-delay:.4s;background:var(--cyan)}
+@keyframes fillpulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+.fill-title{font-family:'Unbounded',sans-serif;font-weight:700;font-size:1.25rem;margin-bottom:6px}
+.fill-sub{color:var(--muted);font-size:.92rem;line-height:1.5;margin-bottom:18px}
+.fill-sub b{color:#fff}
+.fill-qr{width:170px;height:170px;margin:0 auto 10px;background:#fff;border-radius:16px;padding:10px;cursor:pointer}
+.fill-qr img{width:100%;height:100%;display:block;border-radius:6px}
+.fill-hint{color:var(--muted);font-size:.8rem;margin-bottom:16px}
+.fill-btn{max-width:280px;margin:0 auto}
+
 /* SELECTOR DE ZONA */
 /* Popup "Proponer quedar" (sustituye al antiguo selector público de zona) */
 .meet-tag{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;background:rgba(39,224,214,.16);color:#a8f0e9;padding:2px 8px;border-radius:30px;font-weight:600;white-space:nowrap}
@@ -926,6 +943,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       <button class="chip" data-f="likesMe" onclick="toggleChip('likesMe')">⭐ Les gustas</button>
       <button class="chip filters-gear" id="filtersGear" onclick="openFilterPanel()" title="Filtros avanzados" aria-label="Filtros avanzados">⚙</button>
     </div>
+    <div id="fillRoom"></div>
     <div id="matchList"></div>
     <div id="blockedSection"></div>
     <div class="social-footer" data-social></div>
@@ -4013,6 +4031,29 @@ function openInviteOverlay(){
 }
 function closeInviteOverlay(){ document.getElementById('inviteOverlay').classList.remove('on'); }
 
+/* 🎉 Bloque que se muestra cuando hay POCA gente (menos de FILL_THRESHOLD).
+   Anima a invitar (QR + mensaje) para arrancar la energía de la sala.
+   Cuando hay suficiente gente, se oculta solo. */
+const FILL_THRESHOLD = 10;
+function renderFillRoom(visible){
+  const el = document.getElementById('fillRoom');
+  if(!el) return;
+  if(visible >= FILL_THRESHOLD){ el.innerHTML=''; el.classList.remove('on'); return; }
+  const url = getPartyURL();
+  const qr = getQRImageURL(url);
+  const faltan = FILL_THRESHOLD - visible;
+  el.classList.add('on');
+  el.innerHTML = `
+    <div class="fill-card">
+      <div class="fill-pulse"><span></span><span></span><span></span></div>
+      <div class="fill-title">La gente está entrando…</div>
+      <div class="fill-sub">Ya sois <b>${visible}</b> en ${esc(VENUE_NAME||'la fiesta')}. Cuantos más, mejor: trae a quien tengas al lado.</div>
+      <div class="fill-qr" onclick="openLightbox('${qr}')"><img src="${qr}" alt="QR para invitar"></div>
+      <div class="fill-hint">Que escaneen este QR para unirse a la sala</div>
+      <button class="btn fill-btn" onclick="openInviteOverlay()">Compartir la fiesta</button>
+    </div>`;
+}
+
 async function refreshMatches(force){
   if(!me) return;
   if(!roomLoaded){ const ok=await loadRoomFull(); if(!ok) return; }  // primera vez: carga única (ligera)
@@ -4038,6 +4079,12 @@ async function refreshMatches(force){
   // El contador de cabecera es solo texto, lo refrescamos siempre (no parpadea)
   const visible = room.filter(u=>!isBlocked(u.id)).length + 1;
   document.getElementById('roomMeta').innerHTML=`En <b>${esc(VENUE_NAME||'tu fiesta')}</b> · <b>${visible}</b> personas conectadas`;
+
+  // 🎉 Sala con poca gente: en vez de una pantalla vacía que da mala sensación,
+  // animamos a invitar y mostramos que la fiesta está arrancando.
+  // Solo en la vista general (sin filtros activos), para no estorbar al buscar.
+  const sinFiltros = activeChips.size===0 && countActiveFilters()===0;
+  renderFillRoom(sinFiltros ? visible : FILL_THRESHOLD);
 
   // FIRMA con quién está + sus datos visibles (foto/nombre/edad/zona) + bloqueos + filtros
   // Incluir la foto es CLAVE: si alguien sube su foto después, la lista debe repintarse.
