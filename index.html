@@ -478,10 +478,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 #fabBadge{position:absolute;top:-3px;right:-3px;min-width:23px;height:23px;padding:0 6px;border-radius:12px;background:#fff;color:var(--pink);font-weight:800;font-size:.76rem;display:none;align-items:center;justify-content:center;border:2px solid var(--bg)}
 
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#fff;color:#120c22;padding:12px 22px;border-radius:60px;font-weight:600;font-size:.9rem;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:90%;text-align:center}
-#updateBar{position:fixed;left:0;right:0;top:0;z-index:200;display:none;align-items:center;justify-content:center;gap:14px;padding:11px 18px;background:linear-gradient(105deg,#ff2e8b,#8b5cff);color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(139,92,255,.4);animation:slideDown .35s both}
-#updateBar.on{display:flex}
-#updateBar .ub-btn{background:rgba(255,255,255,.22);padding:5px 14px;border-radius:30px;font-weight:700;font-size:.85rem}
-@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+#updateBar{display:none !important}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* BOTÓN DE PERFIL (arriba a la derecha en afines) */
@@ -2351,27 +2348,12 @@ function watchPartyDayChange(){
   }, 60000);   // comprobar cada minuto
 }
 
-/* ════════ 🔄 COMPROBADOR DE VERSIÓN ════════
-   Lee version.json del servidor (saltándose la caché) y, si el número es mayor
-   que el de esta app, muestra la barra "Actualizar". Así un cambio publicado a
-   mitad de noche llega a todos sin que tengan que cerrar y reabrir a ciegas. */
+/* ════════ 🔄 COMPROBADOR DE VERSIÓN (DESACTIVADO) ════════
+   La barra de actualización está apagada. La función no hace nada y se asegura
+   de que la barra quede oculta siempre. */
 async function checkVersion(){
-  try{
-    const r = await fetch('version.json?_=' + Date.now(), { cache:'no-store' });
-    if(!r.ok) return;
-    const j = await r.json();
-    const bar = document.getElementById('updateBar');
-    if(!bar) return;
-    // Mostrar la barra SOLO si el servidor tiene una versión más nueva que esta app.
-    // Como APP_VERSION ya viene en el HTML que se está ejecutando, en cuanto el
-    // usuario recargue al index nuevo, APP_VERSION sube y esta condición deja de
-    // cumplirse → la barra no vuelve a salir.
-    if(j && typeof j.version==='number' && j.version > APP_VERSION){
-      bar.classList.add('on');
-    } else {
-      bar.classList.remove('on');   // por si acaso, la ocultamos si ya estamos al día
-    }
-  }catch(e){ /* sin conexión: no pasa nada, se reintenta luego */ }
+  const bar = document.getElementById('updateBar');
+  if(bar) bar.classList.remove('on');
 }
 
 /* Fuerza la versión nueva: borra cachés y service worker, y recarga trayendo
