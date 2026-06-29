@@ -671,6 +671,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .io-tip{margin-top:14px;color:var(--muted);font-size:.82rem;line-height:1.4}
 .io-close{display:block;width:100%;margin-top:22px;background:transparent;border:1px solid var(--card-line);color:var(--ink);font-family:inherit;font-weight:700;padding:12px;border-radius:30px;cursor:pointer;font-size:.95rem}
 .io-close:hover{border-color:#ffd23f;color:#ffd23f}
+.io-share{display:block;width:100%;margin-top:20px;background:linear-gradient(105deg,#ff2e8b,#8b5cff);border:none;color:#fff;font-family:inherit;font-weight:700;padding:14px;border-radius:30px;cursor:pointer;font-size:.98rem;box-shadow:0 6px 20px rgba(139,92,255,.35)}
+.io-share:active{transform:scale(.98)}
 
 /* Botón "compartir al grupo" en cada ficha de afín */
 .share-btn{flex:none;background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:1.1rem;padding:6px 4px;line-height:1;transition:.14s}
@@ -1155,6 +1157,7 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     <div class="io-qr"><img id="inviteQrImg" alt="Código QR de la fiesta"></div>
     <div class="io-url">&nbsp;</div>
     <div class="io-tip">Sin descargas, sin cuentas. Funciona en cualquier móvil.</div>
+    <button class="io-share" onclick="shareParty()">📲 Compartir por WhatsApp, Instagram…</button>
     <button class="io-close" onclick="closeInviteOverlay()">Cerrar</button>
   </div>
 </div>
@@ -4007,6 +4010,27 @@ function getPartyURL(){
   return url;
 }
 
+/* 📲 Abre el menú nativo de compartir del móvil (WhatsApp, Instagram, AirDrop…).
+   Si el dispositivo no lo soporta (algunos navegadores de escritorio),
+   copia el enlace al portapapeles como respaldo. */
+async function shareParty(){
+  const url = getPartyURL();
+  const texto = `¡Únete a la fiesta en ${VENUE_NAME||'Afines'}! Escanea o entra aquí 👇`;
+  if(navigator.share){
+    try{
+      await navigator.share({ title:'Afines · '+(VENUE_NAME||'Fiesta'), text:texto, url });
+      return;
+    }catch(e){ if(e && e.name==='AbortError') return; }   // el usuario cerró el menú: no hacemos nada
+  }
+  // Respaldo: copiar al portapapeles
+  try{
+    await navigator.clipboard.writeText(url);
+    toast('Enlace copiado ✓');
+  }catch(e){
+    toast('Comparte este enlace: ' + url);
+  }
+}
+
 function generateQR(){
   // QR de la app + venue + fecha de hoy → si alguien lo escanea otro día,
   // la app le muestra "te perdiste la fiesta"
@@ -4034,7 +4058,7 @@ function closeInviteOverlay(){ document.getElementById('inviteOverlay').classLis
 /* 🎉 Bloque que se muestra cuando hay POCA gente (menos de FILL_THRESHOLD).
    Anima a invitar (QR + mensaje) para arrancar la energía de la sala.
    Cuando hay suficiente gente, se oculta solo. */
-const FILL_THRESHOLD = 10;
+const FILL_THRESHOLD = 5;
 function renderFillRoom(visible){
   const el = document.getElementById('fillRoom');
   if(!el) return;
@@ -4050,7 +4074,7 @@ function renderFillRoom(visible){
       <div class="fill-sub">Ya sois <b>${visible}</b> en ${esc(VENUE_NAME||'la fiesta')}. Cuantos más, mejor: trae a quien tengas al lado.</div>
       <div class="fill-qr" onclick="openLightbox('${qr}')"><img src="${qr}" alt="QR para invitar"></div>
       <div class="fill-hint">Que escaneen este QR para unirse a la sala</div>
-      <button class="btn fill-btn" onclick="openInviteOverlay()">Compartir la fiesta</button>
+      <button class="btn fill-btn" onclick="shareParty()">Compartir la fiesta</button>
     </div>`;
 }
 
@@ -4627,7 +4651,7 @@ function startPolling(){
 
 /* expose */
 Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick,show,
-  openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,toggleChip,openMatches,openInbox,toggleLike,applyUpdate,
+  openChat,openChatById,closeChat,sendMsg,refreshMatches,clearPhoto,toggleChip,openMatches,openInbox,toggleLike,applyUpdate,shareParty,
   openLightbox,closeLightbox,celebrate,closeCelebrate,celebrateToChat,
   openMeetPicker,closeMeetPicker,proposeMeet,confirmMeet,startVoiceRecording,cancelVoiceRecording,stopAndSendVoiceRecording,
   toggleChatMenu,blockCurrent,blockUser,unblockUser,toggleChatAttachMenu,closeChatAttachMenu,chatAttachAction,
