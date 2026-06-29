@@ -1341,7 +1341,7 @@ let sb = null, SB_READY = false, AUTH_ID = null;
    Sube este número CADA VEZ que publiques cambios importantes (1, 2, 3…).
    La app compara con version.json del servidor y, si hay una versión más
    nueva, muestra una barra "Actualiza para ver las novedades". */
-const APP_VERSION = 1;
+const APP_VERSION = 2;
 
 /* ════════ 🔔 PUSH (clave pública VAPID) ════════
    Esta clave es PÚBLICA y va en el cliente. La privada vive en la Edge Function
@@ -2360,15 +2360,26 @@ async function checkVersion(){
     const r = await fetch('version.json?_=' + Date.now(), { cache:'no-store' });
     if(!r.ok) return;
     const j = await r.json();
+    const bar = document.getElementById('updateBar');
+    if(!bar) return;
+    // Mostrar la barra SOLO si el servidor tiene una versión más nueva que esta app.
+    // Como APP_VERSION ya viene en el HTML que se está ejecutando, en cuanto el
+    // usuario recargue al index nuevo, APP_VERSION sube y esta condición deja de
+    // cumplirse → la barra no vuelve a salir.
     if(j && typeof j.version==='number' && j.version > APP_VERSION){
-      const bar = document.getElementById('updateBar');
-      if(bar) bar.classList.add('on');
+      bar.classList.add('on');
+    } else {
+      bar.classList.remove('on');   // por si acaso, la ocultamos si ya estamos al día
     }
   }catch(e){ /* sin conexión: no pasa nada, se reintenta luego */ }
 }
 
-/* Fuerza la versión nueva: borra cachés y service worker, y recarga limpio */
+/* Fuerza la versión nueva: borra cachés y service worker, y recarga trayendo
+   el HTML fresco del servidor (no el cacheado). El parámetro ?v= rompe la caché
+   del navegador para el propio index.html, que es lo que reload() no garantiza. */
 async function applyUpdate(){
+  const bar = document.getElementById('updateBar');
+  if(bar){ bar.classList.remove('on'); bar.innerHTML = '<span class="ub-txt">Actualizando…</span>'; bar.classList.add('on'); }
   try{
     if('serviceWorker' in navigator){
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -2379,8 +2390,10 @@ async function applyUpdate(){
       for(const k of keys){ try{ await caches.delete(k); }catch(e){} }
     }
   }catch(e){}
-  // recarga forzada desde el servidor (no desde caché)
-  location.reload(true);
+  // Recarga con sello de tiempo para saltarnos la caché del HTML, conservando el venue
+  const u = new URL(window.location.href);
+  u.searchParams.set('v', Date.now());
+  window.location.replace(u.toString());
 }
 
 function startVersionWatch(){
