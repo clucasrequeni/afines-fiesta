@@ -71,6 +71,12 @@
   .back-link{color:var(--cyan);font-size:.9rem;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:5px;margin-bottom:14px}
   .foot{margin-top:30px;color:var(--muted);font-size:.78rem;text-align:center;line-height:1.6}
   .hidden{display:none}
+  .lang-sel{padding:0 12px;background:#0c0918;border:1.5px solid var(--line);border-radius:12px;color:var(--ink);font-size:.95rem;font-family:inherit}
+  .lang-sel:focus{outline:none;border-color:var(--pink)}
+  .vlang{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(58,140,255,.14);color:var(--blue);cursor:pointer;border:none;font-family:inherit}
+  .vlang:active{transform:scale(.95)}
+  .vposter{font-size:.8rem;font-weight:700;padding:7px 12px;border-radius:9px;cursor:pointer;font-family:inherit;border:1px solid var(--violet);color:var(--violet);background:transparent}
+  .vposter:active{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -98,6 +104,10 @@
       <label>Crear una sala nueva</label>
       <div class="add-row">
         <input id="newVenueName" placeholder="Nombre del local (ej: Sala Apolo)" autocomplete="off">
+        <select id="newVenueLang" class="lang-sel" title="Idioma de la sala">
+          <option value="es" selected>🇪🇸 Español</option>
+          <option value="en">🇬🇧 English</option>
+        </select>
         <button class="btn" onclick="createVenue()">Crear</button>
       </div>
       <div class="err" id="createErr"></div>
@@ -156,6 +166,7 @@ async function login(){
   const { data, error } = await sb.rpc('admin_list_venues', { p_admin_key: ADMIN_KEY });
   if(error){ err.textContent='No se pudo conectar. Revisa tu conexión.'; return; }
   if(data === null){ err.textContent='Clave incorrecta.'; return; }
+  await loadVenueLangs();
   document.getElementById('gate').classList.add('hidden');
   showVenues(data);
 }
@@ -170,7 +181,10 @@ function logout(){
 }
 
 async function refreshVenues(){
-  const { data } = await sb.rpc('admin_list_venues', { p_admin_key: ADMIN_KEY });
+  const [{ data }] = await Promise.all([
+    sb.rpc('admin_list_venues', { p_admin_key: ADMIN_KEY }),
+    loadVenueLangs()
+  ]);
   showVenues(data||[]);
 }
 
@@ -183,13 +197,18 @@ function showVenues(list){
     cont.innerHTML = '<div class="empty">Aún no has creado ninguna sala. Crea la primera arriba.</div>';
     return;
   }
-  cont.innerHTML = list.map(v=>`
+  cont.innerHTML = list.map(v=>{
+    const lang = venueLangs[v.party_code] || 'es';
+    return `
     <div class="venue-card">
       <div class="vinfo" onclick='openVenue(${JSON.stringify(v.party_code)}, ${JSON.stringify(v.name)})'>
         <div class="vn">${escapeHtml(v.name)}</div>
         <div class="vc">Código: ${escapeHtml(v.party_code)} · enlace: ?venue=${encodeURIComponent(v.name)}</div>
       </div>
       <div class="vactions">
+        <button class="vlang" title="Cambiar idioma de la sala"
+          onclick='toggleVenueLang(${JSON.stringify(v.party_code)}, ${JSON.stringify(lang)})'>${lang==='en'?'🇬🇧 EN':'🇪🇸 ES'}</button>
+        <button class="vposter" onclick='openPoster(${JSON.stringify(v.name)}, ${JSON.stringify(lang)})'>🖼 Cartel</button>
         <span class="vstate ${v.active?'on':'off'}">${v.active?'Abierta':'Cerrada'}</span>
         <button class="vtoggle ${v.active?'close':'open'}"
           onclick='setVenueActive(${JSON.stringify(v.party_code)}, ${v.active?'false':'true'})'>
@@ -197,14 +216,86 @@ function showVenues(list){
         </button>
       </div>
     </div>
-  `).join('');
+  `;}).join('');
+}
+
+/* ── Idiomas de las salas (columna lang de party_venues) ── */
+let venueLangs = {};
+async function loadVenueLangs(){
+  try{
+    const { data } = await sb.from('party_venues').select('party_code,lang');
+    venueLangs = {};
+    (data||[]).forEach(r=>{ venueLangs[r.party_code] = r.lang || 'es'; });
+  }catch(e){ venueLangs = {}; }
+}
+async function toggleVenueLang(code, current){
+  const next = current==='en' ? 'es' : 'en';
+  const { data, error } = await sb.rpc('admin_set_venue_lang', {
+    p_admin_key: ADMIN_KEY, p_code: code, p_lang: next
+  });
+  if(error || data!=='OK'){ alert('No se pudo cambiar el idioma de la sala.'); return; }
+  refreshVenues();
+}
+
+/* ── Cartel imprimible con QR ── */
+function appBaseURL(){
+  return location.origin + location.pathname.replace(/admin\.html.*$/,'');
+}
+function openPoster(name, lang){
+  const url = appBaseURL() + '?venue=' + encodeURIComponent(name);
+  const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=10&color=0a0814&bgcolor=ffffff&data=' + encodeURIComponent(url);
+  const en = lang==='en';
+  const T = en ? {
+    headline:'Find whoever you want here',
+    scan:'Scan & join · no downloads, no accounts',
+    tag:'What happens tonight stays tonight',
+    print:'🖨 Print'
+  } : {
+    headline:'Encuentra a quien quieras aquí',
+    scan:'Escanea y entra · sin descargas, sin cuentas',
+    tag:'Lo que pasa esta noche, se queda esta noche',
+    print:'🖨 Imprimir'
+  };
+  const w = window.open('', '_blank');
+  if(!w){ alert('El navegador bloqueó la ventana del cartel. Permite pop-ups.'); return; }
+  w.document.write(`<!DOCTYPE html>
+<html lang="${en?'en':'es'}"><head><meta charset="UTF-8">
+<title>Cartel · ${escapeHtml(name)}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#08060f;color:#fdfcff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+  .poster{width:min(100vw,760px);min-height:100vh;padding:64px 40px;display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;gap:26px;
+    background:radial-gradient(80% 50% at 50% 0%,rgba(139,92,255,.25),transparent 70%),radial-gradient(70% 40% at 50% 100%,rgba(255,46,139,.22),transparent 70%),#08060f}
+  .brand{font-size:1.3rem;font-weight:800;letter-spacing:.28em;color:#27e0d6}
+  .venue{font-size:1.4rem;font-weight:700;color:#9b91bb}
+  h1{font-size:3rem;line-height:1.12;font-weight:800;letter-spacing:-.02em;max-width:14ch;
+    background:linear-gradient(105deg,#ff2e8b,#8b5cff 55%,#27e0d6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .qrbox{background:#fff;padding:22px;border-radius:26px;box-shadow:0 0 70px rgba(139,92,255,.45)}
+  .qrbox img{width:min(58vw,340px);height:auto;display:block}
+  .scan{font-size:1.05rem;font-weight:700}
+  .tag{font-size:.9rem;color:#9b91bb}
+  .printbtn{position:fixed;top:14px;right:14px;padding:11px 18px;border:none;border-radius:12px;background:linear-gradient(105deg,#ff2e8b,#8b5cff);color:#fff;font-weight:700;font-size:.95rem;cursor:pointer}
+  @media print{ .printbtn{display:none} body{background:#08060f!important;-webkit-print-color-adjust:exact;print-color-adjust:exact} .poster{min-height:auto;height:100vh} }
+  @page{size:A4 portrait;margin:0}
+</style></head><body>
+<button class="printbtn" onclick="window.print()">${T.print}</button>
+<div class="poster">
+  <div class="brand">AFINES</div>
+  <div class="venue">${escapeHtml(name)}</div>
+  <h1>${T.headline}</h1>
+  <div class="qrbox"><img src="${qr}" alt="QR"></div>
+  <div class="scan">${T.scan}</div>
+  <div class="tag">${T.tag}</div>
+</div>
+</body></html>`);
+  w.document.close();
 }
 
 async function setVenueActive(code, makeActive){
   const txt = makeActive ? 'abrir' : 'cerrar';
   if(!confirm(`¿Seguro que quieres ${txt} esta sala?\n\n`+(makeActive
       ? 'La gente podrá volver a entrar con su enlace.'
-      : 'Nadie podrá entrar: verán "esta sala no existe".'))) return;
+      : 'Nadie podrá entrar: verán la pantalla de sala cerrada con el botón hacia Afines.'))) return;
   const { data, error } = await sb.rpc('admin_set_venue_active', {
     p_admin_key: ADMIN_KEY, p_code: code, p_active: makeActive
   });
@@ -219,6 +310,11 @@ async function createVenue(){
   if(!name){ err.textContent='Escribe un nombre.'; return; }
   const { data, error } = await sb.rpc('admin_create_venue', { p_admin_key: ADMIN_KEY, p_name: name });
   if(error || data==='CLAVE_INCORRECTA' || data==='NOMBRE_VACIO'){ err.textContent='No se pudo crear la sala.'; return; }
+  const lang = document.getElementById('newVenueLang').value;
+  if(lang==='en'){
+    // data devuelve el código de la sala recién creada
+    try{ await sb.rpc('admin_set_venue_lang', { p_admin_key: ADMIN_KEY, p_code: data, p_lang: 'en' }); }catch(e){}
+  }
   document.getElementById('newVenueName').value='';
   refreshVenues();
 }
