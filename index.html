@@ -805,6 +805,11 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
       <h1 class="missed-title">Esta sala no existe</h1>
       <p class="missed-sub">No hay ninguna fiesta activa en <b id="noVenueName">esta sala</b> ahora mismo.<br>Puede que el enlace sea incorrecto o que la fiesta aún no esté abierta.</p>
       <div class="missed-tip">Asegúrate de escanear el QR oficial del local donde estás.</div>
+      <p class="missed-sub" style="margin-top:26px">Afines está preparando algo grande…</p>
+      <a class="btn" href="https://clucasrequeni.github.io/afines/"
+         style="display:block;max-width:320px;margin:12px auto 0;text-align:center;text-decoration:none">
+        Regístrate para entrar en sorteos y demás
+      </a>
     </div>
   </section>
 
@@ -1309,6 +1314,532 @@ const VENUE_NAME = readVenueFromURL();
 
 /* (no hace falta tocar nada más debajo de aquí) */
 const PARTY_CODE = (VENUE_NAME.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'').toUpperCase() || 'AFINES');
+
+/* ════════ 🌍 IDIOMA DE LA SALA (es/en) ════════
+   El idioma lo decide el operador al crear la sala en el panel.
+   Se lee de la tabla party_venues al arrancar. Si algo falla, español.
+   Para probar en modo prueba: añade ?lang=en a la URL. */
+let APP_LANG = 'es';
+
+/* Diccionario: cadena exacta en español → inglés. Todo lo que no esté aquí
+   se muestra tal cual (nombres de usuarios, mensajes de chat, artistas…). */
+const EN = {
+/* — Bienvenida / entrada — */
+'Afines · Fiesta':'Afines · Party',
+'¡Bienvenido a':'Welcome to',
+'Afines Fiesta!':'Afines Fiesta!',
+'Estás en':'You are at',
+'Entrar':'Enter',
+'Continuar':'Continue',
+'Volver a la fiesta':'Back to the party',
+'Lo que pasa en esta fiesta se queda en esta fiesta':'What happens at this party stays at this party',
+'Privacidad · todo se borra cada noche':'Privacy · everything is deleted every night',
+'tu fiesta':'your party',
+'la fiesta':'the party',
+
+/* — Sala no existe / cerrada — */
+'Esta sala no existe':'This room doesn\u2019t exist',
+'No hay ninguna fiesta activa en':'There\u2019s no active party at',
+'esta sala':'this room',
+'ahora mismo.':'right now.',
+'Puede que el enlace sea incorrecto o que la fiesta aún no esté abierta.':'The link may be wrong or the party may not be open yet.',
+'Asegúrate de escanear el QR oficial del local donde estás.':'Make sure you scan the official QR code of the venue you\u2019re at.',
+'Afines está preparando algo grande…':'Afines is preparing something big…',
+'Regístrate para entrar en sorteos y demás':'Sign up to enter giveaways and more',
+
+/* — QR de otra noche / bloqueado — */
+'Parece que te perdiste esta fiesta':'Looks like you missed this party',
+'Pídele un QR nuevo a alguien que esté en la fiesta de esta noche.':'Ask someone at tonight\u2019s party for a new QR code.',
+'Volver a empezar':'Start over',
+'No puedes acceder a la fiesta':'You can\u2019t access the party',
+'El personal del local ha retirado tu acceso por esta noche.':'The venue staff has removed your access for tonight.',
+'Si crees que es un error, habla con el personal del local.':'If you think this is a mistake, talk to the venue staff.',
+
+/* — Consentimiento — */
+'Toda la información que introduzcas durante esta noche desaparecerá mañana.':'All the information you enter tonight will disappear tomorrow.',
+'Sin perfiles permanentes, sin historial. Lo que pasa esta noche, se queda esta noche.':'No permanent profiles, no history. What happens tonight stays tonight.',
+'Acepto':'I accept',
+'Aceptar':'Accept',
+'Rechazar':'Decline',
+
+/* — Alta de perfil — */
+'Tú, esta noche':'You, tonight',
+'Cuéntanos lo básico':'Tell us the basics',
+'Solo para esta fiesta. Mañana se borra.':'Only for this party. Deleted tomorrow.',
+'Tu nombre':'Your name',
+'Tu edad':'Your age',
+'Eres…':'You are…',
+'Chica':'Girl','Chico':'Guy','Otro':'Other',
+'Foto ahora mismo':'Photo right now',
+'(opcional)':'(optional)',
+'Hacer foto':'Take photo',
+'Galería':'Gallery',
+'Quitar':'Remove',
+'Empezar':'Start',
+'Saltar preguntas (modo prueba)':'Skip questions (test mode)',
+'Pon nombre, edad (≥18) y género primero':'Enter name, age (18+) and gender first',
+'Pon un nombre válido':'Enter a valid name',
+'Edad no válida':'Invalid age',
+'Tienes que ser mayor de 18 años':'You must be over 18',
+'Elige una opción de género':'Choose a gender option',
+
+/* — Preguntas — */
+'Sobre ti':'About you',
+'Tu música':'Your music',
+'Esta noche':'Tonight',
+'Guardar y salir':'Save & exit',
+'Atrás':'Back',
+'Siguiente':'Next',
+'Listo':'Done',
+'Escribe para ver opciones…':'Type to see options…',
+'"Prefiero no contestar" no cuenta para la afinidad.':'"Prefer not to say" doesn\u2019t count toward affinity.',
+'Prefiero no contestar':'Prefer not to say',
+'Elige una opción':'Choose an option',
+'Modo prueba: sin respuestas':'Test mode: no answers',
+'Contestar preguntas':'Answer questions',
+'Contestar más preguntas':'Answer more questions',
+'Recontestar preguntas':'Re-answer questions',
+
+/* — Preguntas: enunciados — */
+'¿Qué estás bebiendo esta noche?':'What are you drinking tonight?',
+'¿Con cuántos amigos has venido?':'How many friends did you come with?',
+'¿Cuál es tu situación?':'What\u2019s your status?',
+'¿Qué música quieres esta noche?':'What music do you want tonight?',
+'¿Tu artista favorito?':'Your favorite artist?',
+'¿Cómo describirías tu estilo?':'How would you describe your style?',
+'¿Qué buscas esta noche?':'What are you looking for tonight?',
+'¿Cómo te gustaría que se acercaran a ti esta noche?':'How would you like to be approached tonight?',
+'Y tú, ¿cómo te acercas a alguien que te gusta?':'And you — how do you approach someone you like?',
+'¿Plan después de aquí?':'Plans after this?',
+
+/* — Opciones: bebida — */
+'Cerveza':'Beer','Clara':'Shandy','Tinto de verano':'Tinto de verano','Gin tonic':'Gin & tonic',
+'Gin Lemon':'Gin lemon','Cubalibre':'Cuba libre','Ron con cola':'Rum & coke','Vodka':'Vodka',
+'Vodka con Red Bull':'Vodka Red Bull','Whisky':'Whisky','Licor 43':'Licor 43','Jägermeister':'Jägermeister',
+'JägerBomb':'JägerBomb','Tequila':'Tequila','Margarita':'Margarita','Daiquiri':'Daiquiri',
+'Piña colada':'Piña colada','Cosmopolitan':'Cosmopolitan','Sex on the beach':'Sex on the beach',
+'Mojito':'Mojito','Aperol Spritz':'Aperol Spritz','Sangría':'Sangria','Calimocho':'Kalimotxo',
+'Vermut':'Vermouth','Vino':'Wine','Cava':'Cava','Champán':'Champagne','Sidra':'Cider',
+'Chupitos':'Shots','Bebida energética':'Energy drink','Refresco':'Soft drink','Agua':'Water',
+'Sin alcohol':'No alcohol','No bebo, conduzco':'Not drinking, I\u2019m driving',
+
+/* — Opciones: amigos — */
+'He venido solo/a':'I came alone','Con 1':'With 1','Con 2':'With 2','Con 3':'With 3','Con 4':'With 4',
+'Con 5':'With 5','Con 6':'With 6','Con 7':'With 7','Con más de 7':'With more than 7',
+
+/* — Opciones: situación — */
+'Soltero/a':'Single','Conociendo a alguien':'Getting to know someone','En pareja':'In a relationship',
+'Es complicado':'It\u2019s complicated',
+
+/* — Opciones: música — */
+'Reggaetón':'Reggaeton','Trap':'Trap','Pop':'Pop','Hip hop':'Hip hop','R&B':'R&B','Soul':'Soul',
+'Techno':'Techno','House':'House','Tech house':'Tech house','Deep house':'Deep house','EDM':'EDM',
+'Trance':'Trance','Drum & Bass':'Drum & Bass','Rock':'Rock','Indie':'Indie','Alternativo':'Alternative',
+'Punk':'Punk','Metal':'Metal','Electrónica':'Electronic','Latino':'Latin','Bachata':'Bachata',
+'Salsa':'Salsa','Merengue':'Merengue','Dembow':'Dembow','Dancehall':'Dancehall','Afrobeats':'Afrobeats',
+'Disco':'Disco','Funk':'Funk','K-pop':'K-pop','Flamenco':'Flamenco','Country':'Country',
+'Los clásicos':'The classics','Comerciales / Lo que pongan':'Chart hits / Whatever they play',
+
+/* — Opciones: estilo — */
+'Pijo/Pija':'Preppy','Cayetano/Cayetana':'Posh classic','Choni/Cani':'Street chic',
+'Boho Chic / Hippie':'Boho chic / Hippie','Alternativo/a / Grunge':'Alternative / Grunge',
+'Rockero/Rockera':'Rocker','Emo':'Emo','Gótico/Gótica':'Goth','Vintage':'Vintage',
+'Deportivo/Deportiva':'Sporty','Streetwear / Urbano':'Streetwear / Urban','Casual':'Casual',
+'Elegante':'Elegant','Minimalista':'Minimalist','Y2K':'Y2K',
+
+/* — Opciones: qué buscas — */
+'Conocer gente':'Meet people','Ligar':'Flirt','Algo serio':'Something serious',
+'Algo sin compromiso':'Something casual','Bailar sin parar':'Dance non-stop',
+'Pasármelo bien con amigos':'Have fun with friends','Hacer amigos nuevos':'Make new friends',
+'Desconectar':'Switch off','Lo que surja':'Whatever happens',
+
+/* — Opciones: cómo te acerquen / cómo te acercas — */
+'Que sea lanzado/a':'Someone bold','Bailando conmigo':'Dancing with me','Hablando primero':'Talking first',
+'Con humor':'With humor','Con un piropo':'With a compliment','Invitándome a una copa':'Buying me a drink',
+'Con miradas':'With glances','Que un amigo nos presente':'A friend introducing us',
+'En la barra esperando turno':'At the bar waiting my turn',
+'Voy lanzado/a':'I go for it','Bailando cerca':'Dancing close','Empiezo conversación':'Starting a conversation',
+'Lanzo un piropo':'Throwing a compliment','Invito a algo':'Buying a drink',
+'Pido que nos presenten':'Asking to be introduced','Espero a coincidir en la barra':'Waiting to meet at the bar',
+
+/* — Opciones: plan después — */
+'Donde caiga la noche':'Wherever the night takes me','A un after':'To an afterparty',
+'A por comida':'Grab some food','A casa a dormir':'Home to sleep','Aún no lo sé':'Don\u2019t know yet',
+
+/* — Etiquetas cortas de afinidad — */
+'bebida':'drink','grupo':'group','situación':'status','música':'music','artista':'artist',
+'estilo':'style','plan':'plan','cómo te acerquen':'how they approach you','cómo te acercas':'how you approach',
+'after':'after','forma de ligar':'flirting style','afinidad':'affinity',
+
+/* — Foto final — */
+'de perfil':'profile photo',
+'Los perfiles con foto reciben muchos más “me gusta”.':'Profiles with a photo get many more likes.',
+'Elegir de la galería':'Choose from gallery',
+'Saltar ›':'Skip ›',
+
+/* — Pantalla principal — */
+'Todos':'Everyone','Chicas':'Girls','Chicos':'Guys',
+'❤ Me gustan':'❤ I like','⭐ Les gustas':'⭐ They like you',
+'personas conectadas':'people online',
+'En':'At',
+'Invitar amigos':'Invite friends',
+'Toca para abrir chat':'Tap to open chat',
+'Ya no está conectado':'No longer online',
+'Aún no hay nadie más por aquí.':'No one else here yet.',
+'Nadie con ese filtro por ahora.':'No one with that filter for now.',
+'Nadie con esos filtros. Prueba a quitar alguno.':'No one with those filters. Try removing one.',
+'Nadie con ese filtro de ❤ todavía. Toca el corazón en una ficha para mostrar interés.':'No one with that ❤ filter yet. Tap the heart on a card to show interest.',
+'La gente está entrando…':'People are coming in…',
+'Ya sois':'You\u2019re already',
+'Que escaneen este QR para unirse a la sala':'Have them scan this QR to join the room',
+'Compartir la fiesta':'Share the party',
+'Recién llegado':'Just arrived','Recién llegada':'Just arrived',
+'En grupo':'In a group',
+'Me gusta':'Like','Quitar me gusta':'Remove like',
+'❤ Me gusta enviado':'❤ Like sent',
+'No se pudo guardar el me gusta. Reintenta.':'Couldn\u2019t save the like. Try again.',
+'No se pudo quitar el me gusta':'Couldn\u2019t remove the like',
+'❤ Le gustas':'❤ They like you',
+'💞 Os gustáis':'💞 It\u2019s a match',
+'¡Os gustáis!':'It\u2019s a match!',
+'¡Os gustáis! 💞':'It\u2019s a match! 💞',
+'💞 ¡Os gustáis!':'💞 It\u2019s a match!',
+'Escribirle ahora':'Message them now',
+'Seguir mirando':'Keep looking',
+'Tú y':'You and',
+
+/* — Notificaciones — */
+'Activa las notificaciones':'Turn on notifications',
+'Para no perderte mensajes, fotos, me gusta o invitaciones aunque tengas el móvil bloqueado o la app cerrada.':'So you don\u2019t miss messages, photos, likes or invites even with your phone locked or the app closed.',
+'Activar':'Turn on',
+'Notificaciones':'Notifications',
+'Avisos cuando estés fuera de la app.':'Alerts when you\u2019re outside the app.',
+'Avisos activados':'Alerts on',
+'Avisos pausados':'Alerts paused',
+'No activadas':'Not enabled',
+'No soportadas':'Not supported',
+'No soportado en este navegador':'Not supported in this browser',
+'Bloqueadas por el navegador':'Blocked by the browser',
+'Pulsa para recibir avisos aunque la app esté cerrada.':'Tap to get alerts even when the app is closed.',
+'Te llegarán mensajes, me gusta e invitaciones aunque la app esté cerrada.':'You\u2019ll get messages, likes and invites even when the app is closed.',
+'No recibirás avisos hasta reactivar.':'You won\u2019t get alerts until you turn them back on.',
+'Para activarlas, ve a los ajustes de tu navegador.':'To enable them, go to your browser settings.',
+'Notificaciones activadas ✓':'Notifications on ✓',
+'Notificaciones bloqueadas. Cámbialo en los ajustes del navegador.':'Notifications blocked. Change it in your browser settings.',
+'Sin notificaciones no recibirás avisos.':'Without notifications you won\u2019t get alerts.',
+'Este navegador no admite notificaciones push.':'This browser doesn\u2019t support push notifications.',
+'Este navegador no soporta notificaciones push.':'This browser doesn\u2019t support push notifications.',
+'¡Listo! Recibirás avisos aunque la app esté cerrada.':'Done! You\u2019ll get alerts even when the app is closed.',
+'En iPhone hay que añadir Afines a la pantalla de inicio para recibir avisos.':'On iPhone you need to add Afines to your home screen to get alerts.',
+'Instala la app primero':'Install the app first',
+'Para recibir notificaciones en iPhone:':'To get notifications on iPhone:',
+'1. Toca':'1. Tap',
+'Compartir':'Share',
+'(cuadrado con flecha) en Safari.':'(square with arrow) in Safari.',
+'2. Pulsa':'2. Tap',
+'Añadir a pantalla de inicio':'Add to Home Screen',
+'3. Abre Afines desde la pantalla de inicio y vuelve a tocar':'3. Open Afines from your home screen and tap again',
+'Entendido':'Got it',
+'❤ Tienes un me gusta!':'❤ You got a like!',
+
+/* — Chat / inbox — */
+'Tus chats':'Your chats',
+'Mensajes':'Messages',
+'‹ Volver a afines':'‹ Back to afines',
+'Aún no tienes chats.':'No chats yet.',
+'Abre a alguien desde "Afines" y escríbele.':'Open someone from "Afines" and message them.',
+'Escribe algo…':'Type something…',
+'en línea':'online',
+'ESTÁ ESCRIBIENDO…':'IS TYPING…',
+'Rompe el hielo 👋':'Break the ice 👋',
+'Tenéis afinidad, algo de lo que hablar seguro.':'You have affinity — there\u2019s definitely something to talk about.',
+'Mándale una copa':'Send them a drink',
+'Enviar foto':'Send photo',
+'Mensaje de voz':'Voice message',
+'🎤 Mensaje de voz':'🎤 Voice message',
+'Proponer quedar':'Suggest meeting up',
+'Más opciones':'More options',
+'Menú':'Menu',
+'🚩 Reportar':'🚩 Report',
+'🚫 Bloquear a esta persona':'🚫 Block this person',
+'Le has mandado una copa 🍻':'You sent them a drink 🍻',
+'Te ha mandado una copa 🍻':'They sent you a drink 🍻',
+'🍹 Copa enviada':'🍹 Drink sent',
+'No se pudo enviar':'Couldn\u2019t send',
+'No se pudo enviar. Revisa tu conexión.':'Couldn\u2019t send. Check your connection.',
+'No se pudo enviar la foto':'Couldn\u2019t send the photo',
+'No se pudo enviar la foto (sin conexión)':'Couldn\u2019t send the photo (no connection)',
+'No se pudo enviar el audio':'Couldn\u2019t send the audio',
+'Enviando audio…':'Sending audio…',
+'No se pudo acceder al micrófono':'Couldn\u2019t access the microphone',
+'Tu navegador no permite grabar audio':'Your browser doesn\u2019t allow audio recording',
+'Cancelar':'Cancel',
+'Enviar ➤':'Send ➤',
+'📍 ¿Dónde quieres proponer quedar?':'📍 Where do you want to meet up?',
+'✅ ¡Allí estaré!':'✅ I\u2019ll be there!',
+'Barra':'Bar','Pista':'Dance floor','Terraza / Fumadores':'Terrace / Smoking area',
+'Reservado':'VIP area','Baños':'Restrooms','Llegando':'On my way','Saliendo':'Leaving',
+
+/* — Perfil propio — */
+'Tu perfil':'Your profile',
+'Subir de galería':'Upload from gallery',
+'Tu descripción':'Your bio',
+'· la verán al pulsar tu foto':'· shown when they tap your photo',
+'Algo sobre ti… (opcional)':'Something about you… (optional)',
+'Guardar cambios':'Save changes',
+'Perfil actualizado':'Profile updated',
+'Foto actualizada':'Photo updated',
+'Foto actualizada ✓':'Photo updated ✓',
+'Foto guardada solo en este móvil (sin conexión al servidor)':'Photo saved only on this phone (no server connection)',
+'No se pudo cargar la foto':'Couldn\u2019t load the photo',
+'La foto es demasiado grande (máx. 8 MB)':'The photo is too big (max 8 MB)',
+'Invita a otros':'Invite others',
+'Si quieres que más gente entre a la fiesta,':'If you want more people to join the party,',
+'enséñales este QR para que escaneen y se unan.':'show them this QR so they can scan and join.',
+'Pulsa para ampliar':'Tap to enlarge',
+'Código QR':'QR code',
+'Borrar mi perfil':'Delete my profile',
+'Desaparecerás de la fiesta y se borrarán tus datos de esta noche.':'You\u2019ll disappear from the party and tonight\u2019s data will be deleted.',
+'Perfil borrado':'Profile deleted',
+'Perfil no encontrado':'Profile not found',
+'Sin descripción.':'No bio.',
+'Aún no has escrito una descripción. Edítala en tu perfil.':'You haven\u2019t written a bio yet. Edit it in your profile.',
+
+/* — Cámara — */
+'Cambiar cámara':'Switch camera',
+'Hacer foto de perfil':'Take profile photo',
+'Repetir':'Retake',
+'Usar foto':'Use photo',
+'Cerrar':'Close',
+'Foto ampliada':'Enlarged photo',
+'Cámara frontal: la foto saldrá como en el espejo.':'Front camera: the photo will look like a mirror.',
+'Cámara frontal: la foto saldrá como en el espejo. Pulsa ⟲ para la cámara de atrás.':'Front camera: the photo will look like a mirror. Tap ⟲ for the back camera.',
+'Cámara trasera: la foto saldrá normal.':'Back camera: the photo will look normal.',
+'No se pudo abrir la cámara. Usa la galería.':'Couldn\u2019t open the camera. Use the gallery.',
+'Tu navegador no permite la cámara. Usa la galería.':'Your browser doesn\u2019t allow the camera. Use the gallery.',
+'Espera a que cargue la cámara':'Wait for the camera to load',
+'¿Te gusta? Pulsa "Usar foto" y la verá la gente al instante.':'Like it? Tap "Use photo" and people will see it instantly.',
+'Haz tu foto con la cámara (botón "Hacer foto") y saldrá verificada. Da más confianza.':'Take your photo with the camera ("Take photo" button) and it\u2019ll show as verified. It builds more trust.',
+
+/* — Grupos — */
+'Grupo':'Group',
+'Chat de grupo':'Group chat',
+'Personas conectadas':'People online',
+'Añadir más gente':'Add more people',
+'Compartir perfil al grupo':'Share profile with the group',
+'Compartir al grupo':'Share with the group',
+'Toca a una persona conectada para que aparezca en el chat de tu grupo.':'Tap someone online so they appear in your group chat.',
+'Ponle nombre a tu grupo':'Name your group',
+'Así tus amigos verán a qué grupo se unen. Puedes cambiarlo luego.':'This way your friends will see which group they\u2019re joining. You can change it later.',
+'Ej: Las del cumple, Equipo terraza…':'E.g.: Birthday crew, Terrace team…',
+'Crear grupo':'Create group',
+'Crear un grupo':'Create a group',
+'Crea un grupo o únete a uno primero':'Create or join a group first',
+'Crea un grupo para moveros juntos por la fiesta y tener vuestro propio chat privado.':'Create a group to move around the party together and have your own private chat.',
+'O espera a que alguien te invite al suyo':'Or wait for someone to invite you to theirs',
+'Puedes estar en más de un grupo':'You can be in more than one group',
+'Varios a la vez':'Several at once',
+'Vente en grupo':'Come as a group',
+'No os perdáis':'Don\u2019t lose each other',
+'Compartid dónde estáis dentro del local':'Share where you are inside the venue',
+'Hablad entre vosotros sin salir de la fiesta':'Talk to each other without leaving the party',
+'+ Nuevo':'+ New',
+'Salir':'Leave',
+'Invitar':'Invite',
+'Pendiente…':'Pending…',
+'En este grupo ✓':'In this group ✓',
+'Ya en este grupo':'Already in this group',
+'te invita a su grupo':'invites you to their group',
+'Si lo aceptas, apareceréis marcados como del mismo grupo en la pantalla principal.':'If you accept, you\u2019ll both show as part of the same group on the main screen.',
+'Alguien':'Someone',
+'Esta invitación es de otra noche.':'This invite is from another night.',
+'No puedes invitar a esta persona':'You can\u2019t invite this person',
+'Necesitas estar en un grupo':'You need to be in a group',
+'Has salido del grupo':'You left the group',
+'Solo tú de momento':'Just you for now',
+', tú':', you',
+'Código copiado':'Code copied',
+'Aún no hay mensajes.':'No messages yet.',
+'Escribe el primero o comparte un perfil tocando el icono ↗ en alguien de la lista de afines.':'Write the first one or share a profile by tapping the ↗ icon on someone in the afines list.',
+'Aún no hay nadie más conectado.':'No one else online yet.',
+'No hay nadie más conectado para compartir.':'No one else online to share.',
+'Perfil compartido':'Profile shared',
+'Ha compartido un perfil con el grupo':'Shared a profile with the group',
+
+/* — Coincidencias — */
+'Ver coincidencias':'See what you share',
+'Aún no hay coincidencias claras, pero todo puede pasar 🍀':'No clear matches yet, but anything can happen 🍀',
+'Lo que te gusta':'What you like',
+
+/* — Filtros — */
+'Filtros':'Filters',
+'Filtros avanzados':'Advanced filters',
+'Situación':'Status',
+'Estilo':'Style',
+'Plan después':'Plans after',
+'Limpiar':'Clear',
+'Aplicar':'Apply',
+
+/* — Reportar / bloquear — */
+'Reportar a':'Report',
+'esta persona':'this person',
+'Cuéntanos qué pasa. Dejarás de ver a esta persona y avisarás al equipo. Es anónimo.':'Tell us what\u2019s going on. You\u2019ll stop seeing this person and the team will be notified. It\u2019s anonymous.',
+'Comportamiento inapropiado':'Inappropriate behavior',
+'Acoso o mensajes molestos':'Harassment or unwanted messages',
+'Perfil o foto falsos':'Fake profile or photo',
+'Contenido sexual no deseado':'Unwanted sexual content',
+'Otro motivo':'Other reason',
+'Gracias. Lo revisaremos y no volverás a ver a esta persona.':'Thanks. We\u2019ll review it and you won\u2019t see this person again.',
+'Persona bloqueada':'Person blocked',
+'Persona desbloqueada':'Person unblocked',
+'Estas personas no te ven, y tú no las ves en afines.':'These people can\u2019t see you, and you can\u2019t see them in afines.',
+
+/* — QR / invitar — */
+'Únete a la fiesta':'Join the party',
+'Que tus amigos escaneen este QR con la cámara y entrarán a la app de la noche.':'Have your friends scan this QR with their camera and they\u2019ll enter tonight\u2019s app.',
+'Código QR de la fiesta':'Party QR code',
+'Sin descargas, sin cuentas. Funciona en cualquier móvil.':'No downloads, no accounts. Works on any phone.',
+'📲 Compartir por WhatsApp, Instagram…':'📲 Share via WhatsApp, Instagram…',
+'QR de la fiesta':'Party QR',
+'QR para invitar':'QR to invite',
+'Enlace copiado ✓':'Link copied ✓',
+'No se pudo compartir':'Couldn\u2019t share',
+'INVITAR AMIGOS':'INVITE FRIENDS',
+
+/* — Privacidad — */
+'Privacidad y datos':'Privacy & data',
+'Todo se borra cada noche.':'Everything is deleted every night.',
+'Tu nombre, edad, foto, respuestas y chats existen solo durante la fiesta y se eliminan automáticamente. No hay perfiles permanentes ni historial.':'Your name, age, photo, answers and chats exist only during the party and are deleted automatically. There are no permanent profiles or history.',
+'Qué datos tratamos:':'What data we process:',
+'nombre (o apodo), edad, género, foto y las respuestas que elijas. No pedimos correo, teléfono, apellidos ni contraseña.':'name (or nickname), age, gender, photo and the answers you choose. We don\u2019t ask for email, phone, last name or password.',
+'Para qué:':'What for:',
+'únicamente para mostrar tu perfil a las demás personas que están esta noche en el mismo local y permitir que habléis. Tu foto y tu perfil son':'only to show your profile to the other people at the same venue tonight and let you talk. Your photo and profile are',
+'visibles para el resto de asistentes':'visible to the other attendees',
+'de esta noche.':'tonight.',
+'Cuánto tiempo:':'For how long:',
+'los datos se conservan solo durante la noche del evento y se borran de forma automática al finalizar.':'data is kept only during the night of the event and is deleted automatically when it ends.',
+'Tus derechos:':'Your rights:',
+'puedes borrar tu perfil en cualquier momento desde "Borrar mi perfil", y desaparecerás al instante. Para ejercer tus derechos de acceso, rectificación o supresión, escríbenos a':'you can delete your profile at any time from "Delete my profile" and you\u2019ll disappear instantly. To exercise your rights of access, rectification or erasure, write to us at',
+'No vendemos ni cedemos tus datos':'We don\u2019t sell or share your data',
+'a terceros con fines comerciales.':'with third parties for commercial purposes.',
+'La app es':'The app is',
+'solo para mayores de 18 años':'for over-18s only',
+'Leer la política de privacidad completa':'Read the full privacy policy',
+'Lo que pasa esta noche, se queda en esta noche.':'What happens tonight stays tonight.',
+'Las fiestas en Afines duran solo una noche — los datos desaparecen al amanecer.':'Parties on Afines last only one night — data disappears at dawn.',
+
+/* — Versión nueva — */
+'✨ Hay una versión nueva':'✨ There\u2019s a new version',
+'Actualiza para ver las novedades':'Update to see what\u2019s new',
+'Actualizar':'Update',
+};
+
+/* Claves usadas al componer textos desde el código */
+EN['QR del '] = 'QR from ';
+EN['Invitar amigos a la fiesta'] = 'Invite friends to the party';
+EN['¿Cómo te llamas?'] = 'What\u2019s your name?';
+EN['en '] = 'at ';
+EN['Fiesta'] = 'Party';
+EN['¡Únete a la fiesta en {V}! Escanea o entra aquí 👇'] = 'Join the party at {V}! Scan or enter here 👇';
+EN['¿Bloquear a {N}?\n\nDejaréis de veros en afines y el chat desaparecerá.'] = 'Block {N}?\n\nYou\u2019ll stop seeing each other in afines and the chat will disappear.';
+EN['¿Salir de este grupo?'] = 'Leave this group?';
+EN['¿Seguro que quieres borrar tu perfil?\n\nDesaparecerás de la fiesta y se borrarán tus datos de esta noche. Podrás volver a entrar cuando quieras.'] = 'Are you sure you want to delete your profile?\n\nYou\u2019ll disappear from the party and tonight\u2019s data will be deleted. You can come back in whenever you want.';
+
+/* Reglas para textos compuestos (con números o nombres dentro). Se aplican
+   solo si no hay coincidencia exacta en EN. */
+const EN_RX = [
+  [/^Pregunta (\d+) de (\d+)$/, 'Question $1 of $2'],
+  [/^(\d+) años$/, '$1 y/o'],
+  [/^Ya sois (\d+) en (.+)\. Cuantos más, mejor: trae a quien tengas al lado\.$/, 'You\u2019re already $1 at $2. The more the merrier — bring whoever\u2019s next to you.'],
+  [/^en (.+)\. Cuantos más, mejor: trae a quien tengas al lado\.$/, 'at $1 already. The more the merrier — bring whoever\u2019s next to you.'],
+  [/^(\d+) personas conectadas ahora$/, '$1 people online right now'],
+  [/^❤ Le gustas a (\d+) personas$/, '❤ $1 people like you'],
+  [/^❤ Le gustas a (\d+) persona$/, '❤ $1 person likes you'],
+  [/^👥 (.+?) · en grupo con (\d+) personas?$/, '👥 $1 · in a group with $2'],
+  [/^En grupo con (\d+) personas?$/, 'In a group with $1'],
+  [/^🚫 Bloqueados · (\d+)$/, '🚫 Blocked · $1'],
+  [/^(.+) se ha unido al grupo$/, '$1 joined the group'],
+  [/^(.+?) te ha invitado a su grupo "(.+)"$/, '$1 invited you to their group "$2"'],
+  [/^👥 (.+?) te ha invitado al grupo "(.+)"$/, '👥 $1 invited you to the group "$2"'],
+  [/^Invitación enviada al grupo "(.+)"$/, 'Invite sent to the group "$1"'],
+  [/^Grupo creado: (.+)$/, 'Group created: $1'],
+  [/^Grupo de (.+)$/, '$1\u2019s group'],
+  [/^Te has unido a (.+)$/, 'You joined $1'],
+  [/^Compartido con el grupo (.+)$/, 'Shared with the group $1'],
+  [/^Completar más preguntas \((\d+)\/(\d+)\)$/, 'Answer more questions ($1/$2)'],
+  [/^Tú: (.*)$/, 'You: $1'],
+  [/^(.+) y (\d+) más$/, '$1 and $2 more'],
+  [/^Chat (\d+)$/, 'Chat $1'],
+  [/^No se pudo invitar: (.*)$/, 'Couldn\u2019t invite: $1'],
+  [/^Comparte este enlace: (.*)$/, 'Share this link: $1'],
+  [/^📍 Propuesta enviada: (.+)$/, (m,z)=>'📍 Suggestion sent: '+tr(z)],
+  [/^📍 Te propone quedar en (.+)$/, (m,z)=>'📍 They suggest meeting at '+tr(z)],
+  [/^📍 Propuesta para quedar en (.+)$/, (m,z)=>'📍 Suggestion to meet at '+tr(z)],
+  [/^Te propone quedar en (.+)$/, (m,z)=>'They suggest meeting at '+tr(z)],
+  [/^Le has propuesto quedar en (.+)$/, (m,z)=>'You suggested meeting at '+tr(z)],
+  [/^✅ ¡Allí estaré en (.+)!$/, (m,z)=>'✅ I\u2019ll be there at '+tr(z)+'!'],
+  [/^✅ ¡Allí estaré en (.+)$/, (m,z)=>'✅ I\u2019ll be there at '+tr(z)],
+  [/^Antes elegiste: (.+) · escribe para cambiar$/, (m,v)=>'You chose before: '+tr(v)+' · type to change'],
+];
+
+/* Traduce una cadena si estamos en inglés. Con {X} se pueden interpolar valores. */
+function tr(s){
+  if(APP_LANG!=='en' || s==null) return s;
+  if(Object.prototype.hasOwnProperty.call(EN, s)) return EN[s];
+  for(const [rx,rep] of EN_RX){
+    if(rx.test(s)) return typeof rep==='function' ? s.replace(rx,rep) : s.replace(rx,rep);
+  }
+  return s;
+}
+
+/* — Motor de traducción del DOM —
+   Traduce todo el texto visible al cargar y, con un MutationObserver,
+   todo lo que la app pinte después. Los datos internos (data-v, ids,
+   respuestas guardadas) siguen en español: solo cambia lo que se VE. */
+const I18N_ATTRS = ['placeholder','aria-label','title','alt'];
+function trTextNode(node){
+  const raw = node.nodeValue; if(!raw) return;
+  const s = raw.trim(); if(!s) return;
+  const out = tr(s); if(out===s) return;
+  node.nodeValue = raw.replace(s, out);
+}
+function trAttrs(el){
+  if(!el.getAttribute) return;
+  for(const a of I18N_ATTRS){
+    const v = el.getAttribute(a); if(!v) continue;
+    const out = tr(v); if(out!==v) el.setAttribute(a, out);
+  }
+}
+function translateTree(root){
+  if(!root) return;
+  if(root.nodeType===3){ trTextNode(root); return; }
+  if(root.nodeType!==1) return;
+  trAttrs(root);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let n; while((n=w.nextNode())) trTextNode(n);
+  if(root.querySelectorAll){
+    root.querySelectorAll('[placeholder],[aria-label],[title],[alt]').forEach(trAttrs);
+  }
+}
+let i18nObserver = null;
+function applyLang(){
+  if(APP_LANG!=='en') return;
+  try{ document.documentElement.lang = 'en'; }catch(e){}
+  translateTree(document.body);
+  if(i18nObserver) return;
+  i18nObserver = new MutationObserver(muts=>{
+    for(const m of muts){
+      if(m.type==='characterData'){ trTextNode(m.target); }
+      else if(m.type==='childList'){ m.addedNodes.forEach(n=>translateTree(n)); }
+      else if(m.type==='attributes'){ trAttrs(m.target); }
+    }
+  });
+  i18nObserver.observe(document.body, {
+    childList:true, subtree:true, characterData:true,
+    attributes:true, attributeFilter:I18N_ATTRS
+  });
+}
+
 /* La "noche de fiesta" empieza a las 17:00 hora local y dura hasta las 16:59
    del día siguiente. Antes de las 17:00, seguimos contando como la fiesta de
    "ayer" — así, lo que pasa de viernes 22h hasta sábado 16:59 es la MISMA noche
@@ -2257,6 +2788,8 @@ async function init(){
   registerSW();           // 🔔 registra el Service Worker (lo necesita Web Push)
   setupNotifRouting();    // 🎯 escucha clics en notificaciones
   await initSupabase();
+  // 🌍 En modo prueba se puede forzar inglés con ?lang=en
+  try{ if(new URL(location.href).searchParams.get('lang')==='en') APP_LANG='en'; }catch(e){}
   // 🔒 Validar la sala: solo se entra si el venue existe y está activo.
   // Excepción: el modo prueba (sin ?venue=) siempre entra, para poder testear.
   if(SB_READY && VENUE_NAME !== VENUE_FALLBACK){
@@ -2265,8 +2798,15 @@ async function init(){
       const { data, error } = await sb.rpc('venue_exists', { p_code: PARTY_CODE });
       if(!error) ok = !!data;
     }catch(e){ /* si falla la comprobación, dejamos entrar para no bloquear por un fallo de red */ }
+    // 🌍 Idioma configurado para esta sala en el panel. Si falla, español.
+    try{
+      const { data:vi } = await sb.from('party_venues').select('lang').eq('party_code', PARTY_CODE).maybeSingle();
+      if(vi && vi.lang==='en') APP_LANG='en';
+    }catch(e){}
+    applyLang();
     if(!ok){ showNoVenueScreen(); return; }
   }
+  applyLang();
   await enterParty();
 }
 
@@ -2315,13 +2855,17 @@ function checkPartyDate(){
   }catch(e){ return false; }
 }
 function showMissedPartyScreen(qrDate){
-  document.getElementById('missedMeta').textContent = 'QR del ' + prettyDate(qrDate);
+  document.getElementById('missedMeta').textContent = tr('QR del ') + prettyDate(qrDate);
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   document.getElementById('screen-missed').classList.add('on');
 }
 function prettyDate(iso){
-  const m = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const p = iso.split('-'); if(p.length!==3) return iso;
+  if(APP_LANG==='en'){
+    const me = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return me[parseInt(p[1],10)-1] + ' ' + parseInt(p[2],10) + ', ' + p[0];
+  }
+  const m = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   return parseInt(p[2],10) + ' de ' + m[parseInt(p[1],10)-1] + ' de ' + p[0];
 }
 function restartClean(){
@@ -2890,7 +3434,7 @@ function renderQ(){
   const inp=document.getElementById('acInput');
   const prev = me.answers[q.id] || '';
   inp.value='';
-  inp.placeholder = prev ? ('Antes elegiste: '+prev+' · escribe para cambiar') : 'Escribe para ver opciones…';
+  inp.placeholder = prev ? tr('Antes elegiste: '+prev+' · escribe para cambiar') : tr('Escribe para ver opciones…');
   acSelected=null;
   document.getElementById('qNext').disabled = !prev;   // si ya había respuesta, puede avanzar sin tocar
   // Si ya completó el alta, puede salir de las preguntas en cualquier momento
@@ -2899,20 +3443,20 @@ function renderQ(){
   closeDrop();
   setTimeout(()=>inp.focus(),120);
 }
-function filterOpts(q,text){ const t=norm(text); if(!t) return q.options; return q.options.filter(o=>norm(o).includes(t)); }
+function filterOpts(q,text){ const t=norm(text); if(!t) return q.options; return q.options.filter(o=>norm(tr(o)).includes(t)); }
 function openDrop(){
   const q=questionSet[qIndex], inp=document.getElementById('acInput'), drop=document.getElementById('acDrop');
   const opts=filterOpts(q,inp.value), t=norm(inp.value);
-  let html=opts.map(o=>{ let label=esc(o); if(t){ const i=norm(o).indexOf(t); if(i>=0) label=esc(o.slice(0,i))+'<b>'+esc(o.slice(i,i+t.length))+'</b>'+esc(o.slice(i+t.length)); }
+  let html=opts.map(o=>{ const d=tr(o); let label=esc(d); if(t){ const i=norm(d).indexOf(t); if(i>=0) label=esc(d.slice(0,i))+'<b>'+esc(d.slice(i,i+t.length))+'</b>'+esc(d.slice(i+t.length)); }
     const cls = o===NOPREF ? 'ac-item skip' : 'ac-item';
     return `<div class="${cls}" onmousedown="pick(this.getAttribute('data-v'))" data-v="${esc(o)}">${label}</div>`; }).join('');
   if(!html){ closeDrop(); return; } drop.innerHTML=html; drop.classList.add('on');
 }
 function closeDrop(){ document.getElementById('acDrop').classList.remove('on'); }
-function pick(val){ document.getElementById('acInput').value=val; acSelected=val; document.getElementById('qNext').disabled=false; closeDrop(); }
+function pick(val){ document.getElementById('acInput').value=tr(val); acSelected=val; document.getElementById('qNext').disabled=false; closeDrop(); }
 document.getElementById('acInput').addEventListener('input',function(){
   const q=questionSet[qIndex], t=norm(this.value);
-  const exact=q.options.find(o=>norm(o)===t);
+  const exact=q.options.find(o=>norm(tr(o))===t || norm(o)===t);
   acSelected = exact ? exact : null;
   // si vacía el campo pero ya tenía respuesta previa, deja avanzar (mantiene la vieja)
   const prev = me.answers[q.id] || '';
@@ -3043,7 +3587,7 @@ function blockCurrent(){
   toggleChatMenu();
   if(!chatWith) return;
   const nm = chatWith.name || 'esta persona';
-  if(confirm(`¿Bloquear a ${nm}?\n\nDejaréis de veros en afines y el chat desaparecerá.`)){
+  if(confirm(tr('¿Bloquear a {N}?\n\nDejaréis de veros en afines y el chat desaparecerá.').replace('{N}', nm))){
     blockUser(chatWith.id);
   }
 }
@@ -3228,7 +3772,7 @@ function updatePresenceVisuals(){
     const sub = document.querySelector('#chatName [data-chat-sub]');
     if(sub){
       const on = onlineUsers.has(chatWith.id);
-      sub.innerHTML = on ? '<span class="online-dot">en línea</span>' : ('en ' + esc(VENUE_NAME||'tu fiesta'));
+      sub.innerHTML = on ? ('<span class="online-dot">'+tr('en línea')+'</span>') : (tr('en ') + esc(tr(VENUE_NAME||'tu fiesta')));
     }
   }
 }
@@ -3403,7 +3947,7 @@ async function joinGroup(code){
 async function leaveGroup(code){
   code = code || activeGroup;
   if(!me || !code) return;
-  if(!confirm('¿Salir de este grupo?')) return;
+  if(!confirm(tr('¿Salir de este grupo?'))) return;
   me.groups = myGroups().filter(g => g !== code);
   delete unreadByGroup[code];
   if(activeGroup === code) activeGroup = myGroups()[0] || null;
@@ -3958,7 +4502,7 @@ async function saveMyProfile(){
 /* ════════ BORRAR PERFIL ════════ */
 async function deleteMyProfile(){
   if(!me) return;
-  if(!confirm('¿Seguro que quieres borrar tu perfil?\n\nDesaparecerás de la fiesta y se borrarán tus datos de esta noche. Podrás volver a entrar cuando quieras.')) return;
+  if(!confirm(tr('¿Seguro que quieres borrar tu perfil?\n\nDesaparecerás de la fiesta y se borrarán tus datos de esta noche. Podrás volver a entrar cuando quieras.'))) return;
   try{ await DB.deleteMe(); }catch(e){}
   // dejar de aparecer "en línea" y cortar tiempo real
   try{ if(presenceChannel){ await presenceChannel.untrack(); sb.removeChannel(presenceChannel); presenceChannel=null; } }catch(e){}
@@ -4010,10 +4554,10 @@ function getPartyURL(){
    copia el enlace al portapapeles como respaldo. */
 async function shareParty(){
   const url = getPartyURL();
-  const texto = `¡Únete a la fiesta en ${VENUE_NAME||'Afines'}! Escanea o entra aquí 👇`;
+  const texto = tr('¡Únete a la fiesta en {V}! Escanea o entra aquí 👇').replace('{V}', VENUE_NAME||'Afines');
   if(navigator.share){
     try{
-      await navigator.share({ title:'Afines · '+(VENUE_NAME||'Fiesta'), text:texto, url });
+      await navigator.share({ title:'Afines · '+(VENUE_NAME||tr('Fiesta')), text:texto, url });
       return;
     }catch(e){ if(e && e.name==='AbortError') return; }   // el usuario cerró el menú: no hacemos nada
   }
