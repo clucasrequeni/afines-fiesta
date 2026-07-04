@@ -93,6 +93,17 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
 .qr-ico{font-size:2.6rem;margin-bottom:8px}
 .qr-inner{padding:20px}
 
+/* PORTAL DE FIESTAS (sin ?venue=) */
+#screen-hub{justify-content:center;align-items:center;text-align:center}
+.hub-lbl{font-size:.78rem;color:var(--muted);letter-spacing:.16em;text-transform:uppercase;margin-bottom:12px;font-weight:600}
+.hub-list{width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px}
+.hub-party{display:block;width:100%;background:var(--card);border:1px solid var(--card-line);border-radius:var(--r);padding:16px 18px;color:var(--ink);text-decoration:none;font-family:'Unbounded',sans-serif;font-weight:600;font-size:1.05rem;transition:border-color .15s,transform .15s;backdrop-filter:blur(8px)}
+.hub-party:hover{border-color:var(--pink)}
+.hub-party:active{transform:scale(.97)}
+.hub-party .hp-go{display:block;font-family:'Hanken Grotesk',sans-serif;font-weight:600;font-size:.8rem;color:var(--cyan);margin-top:5px}
+.hub-empty{color:var(--muted);font-size:.95rem;line-height:1.6;padding:6px 6px 18px}
+.hub-loading{color:var(--muted);font-size:.9rem}
+
 /* WELCOME */
 #screen-welcome{justify-content:center;align-items:center;text-align:center;gap:8px}
 .logo-dot{width:74px;height:74px;border-radius:50%;background:var(--grad);margin-bottom:26px;box-shadow:0 0 0 8px rgba(255,46,139,.12),0 14px 40px rgba(255,138,43,.4);animation:pulse 2.6s ease-in-out infinite}
@@ -813,6 +824,18 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     </div>
   </section>
 
+  <!-- PORTAL (afinesfiesta.com sin ?venue=): fiestas abiertas ahora -->
+  <section class="screen" id="screen-hub">
+    <div style="margin:auto 0;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center">
+      <div class="logo-dot"></div>
+      <div class="kicker">Afines · Fiesta</div>
+      <h1 class="welcome-title">¡Bienvenido a<br><span class="h-grad">Afines Fiesta!</span></h1>
+      <div class="hub-lbl">Fiestas abiertas ahora</div>
+      <div class="hub-list" id="hubList"><div class="hub-loading">Buscando fiestas…</div></div>
+    </div>
+    <div class="social-footer" data-social></div>
+  </section>
+
   <!-- WELCOME -->
   <section class="screen on" id="screen-welcome">
     <div class="logo-dot"></div>
@@ -862,8 +885,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     <div class="field">
       <label>Eres…</label>
       <div class="seg seg-3" id="segGender">
-        <button data-g="chica" onclick="setGender('chica')">Chica</button>
-        <button data-g="chico" onclick="setGender('chico')">Chico</button>
+        <button data-g="chica" onclick="setGender('chica')">Mujer</button>
+        <button data-g="chico" onclick="setGender('chico')">Hombre</button>
         <button data-g="otro" onclick="setGender('otro')">Otro</button>
       </div>
     </div>
@@ -880,7 +903,6 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     <div class="qnav">
       <button class="btn" id="profileNext" onclick="goQuestions()" disabled>Empezar</button>
     </div>
-    <button class="linklike" style="margin-top:14px;align-self:center" onclick="skipQuestionsTest()">Saltar preguntas (modo prueba)</button>
     <div class="social-footer" data-social></div>
   </section>
 
@@ -941,8 +963,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     </div>
     <div class="chips" id="chips">
       <button class="chip on" data-f="todos" onclick="toggleChip('todos')">Todos</button>
-      <button class="chip" data-f="chica" onclick="toggleChip('chica')">Chicas</button>
-      <button class="chip" data-f="chico" onclick="toggleChip('chico')">Chicos</button>
+      <button class="chip" data-f="chica" onclick="toggleChip('chica')">Mujeres</button>
+      <button class="chip" data-f="chico" onclick="toggleChip('chico')">Hombres</button>
       <button class="chip" data-f="iLike" onclick="toggleChip('iLike')">❤ Me gustan</button>
       <button class="chip" data-f="likesMe" onclick="toggleChip('likesMe')">⭐ Les gustas</button>
       <button class="chip filters-gear" id="filtersGear" onclick="openFilterPanel()" title="Filtros avanzados" aria-label="Filtros avanzados">⚙</button>
@@ -1020,8 +1042,8 @@ body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);backgrou
     <div class="field">
       <label>Eres…</label>
       <div class="seg seg-3" id="mySegGender">
-        <button data-g="chica" onclick="setMyGender('chica')">Chica</button>
-        <button data-g="chico" onclick="setMyGender('chico')">Chico</button>
+        <button data-g="chica" onclick="setMyGender('chica')">Mujer</button>
+        <button data-g="chico" onclick="setMyGender('chico')">Hombre</button>
         <button data-g="otro" onclick="setMyGender('otro')">Otro</button>
       </div>
     </div>
@@ -1296,10 +1318,9 @@ const PURGE_OLD_NIGHTS = true;
    El nombre del local se pasa por la URL del QR. Ejemplos:
      ...afines-fiesta/?venue=Sala Apolo
      ...afines-fiesta/?venue=Razzmatazz · Sábado
-   Si la URL no trae ?venue=, se usa VENUE_FALLBACK (modo prueba). */
-const VENUE_FALLBACK = "Afines · modo prueba";
+   Si la URL no trae ?venue=, se muestra el portal con las fiestas abiertas. */
 
-/* Lee ?venue= de la URL (decodificado y saneado). Si no viene, usa el fallback. */
+/* Lee ?venue= de la URL (decodificado y saneado). Si no viene, devuelve ''. */
 function readVenueFromURL(){
   try{
     const v = new URL(window.location.href).searchParams.get('venue');
@@ -1308,17 +1329,20 @@ function readVenueFromURL(){
       return v.trim().replace(/[\u0000-\u001F\u007F]/g,'').slice(0,60);
     }
   }catch(e){}
-  return VENUE_FALLBACK;
+  return '';
 }
 const VENUE_NAME = readVenueFromURL();
+const HAS_VENUE = !!VENUE_NAME;
+/* Título visible de la fiesta: lo pone el operador en el panel (display_name).
+   Si la sala no tiene título configurado, se usa el nombre de la URL. */
+let VENUE_TITLE = VENUE_NAME;
 
 /* (no hace falta tocar nada más debajo de aquí) */
 const PARTY_CODE = (VENUE_NAME.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'').toUpperCase() || 'AFINES');
 
 /* ════════ 🌍 IDIOMA DE LA SALA (es/en) ════════
    El idioma lo decide el operador al crear la sala en el panel.
-   Se lee de la tabla party_venues al arrancar. Si algo falla, español.
-   Para probar en modo prueba: añade ?lang=en a la URL. */
+   Se lee de la tabla party_venues al arrancar. Si algo falla, español. */
 let APP_LANG = 'es';
 
 /* Diccionario: cadena exacta en español → inglés. Todo lo que no esté aquí
@@ -1369,14 +1393,13 @@ const EN = {
 'Tu nombre':'Your name',
 'Tu edad':'Your age',
 'Eres…':'You are…',
-'Chica':'Girl','Chico':'Guy','Otro':'Other',
+'Chica':'Woman','Chico':'Man','Mujer':'Woman','Hombre':'Man','Otro':'Other',
 'Foto ahora mismo':'Photo right now',
 '(opcional)':'(optional)',
 'Hacer foto':'Take photo',
 'Galería':'Gallery',
 'Quitar':'Remove',
 'Empezar':'Start',
-'Saltar preguntas (modo prueba)':'Skip questions (test mode)',
 'Pon nombre, edad (≥18) y género primero':'Enter name, age (18+) and gender first',
 'Pon un nombre válido':'Enter a valid name',
 'Edad no válida':'Invalid age',
@@ -1395,7 +1418,6 @@ const EN = {
 '"Prefiero no contestar" no cuenta para la afinidad.':'"Prefer not to say" doesn\u2019t count toward affinity.',
 'Prefiero no contestar':'Prefer not to say',
 'Elige una opción':'Choose an option',
-'Modo prueba: sin respuestas':'Test mode: no answers',
 'Contestar preguntas':'Answer questions',
 'Contestar más preguntas':'Answer more questions',
 'Recontestar preguntas':'Re-answer questions',
@@ -1478,7 +1500,7 @@ const EN = {
 'Saltar ›':'Skip ›',
 
 /* — Pantalla principal — */
-'Todos':'Everyone','Chicas':'Girls','Chicos':'Guys',
+'Todos':'Everyone','Chicas':'Women','Chicos':'Men','Mujeres':'Women','Hombres':'Men',
 '❤ Me gustan':'❤ I like','⭐ Les gustas':'⭐ They like you',
 'personas conectadas':'people online',
 'En':'At',
@@ -1953,8 +1975,9 @@ const EXTRA_QUESTIONS = QUESTIONS.filter(q=>!q.core);
 /* Lista que se está recorriendo ahora mismo en la pantalla de preguntas */
 let questionSet = CORE_QUESTIONS;
 
-/* Zonas del local — cada persona puede cambiar la suya en dos toques */
-const ZONES = ['Barra','Pista','Terraza / Fumadores','Reservado','Baños','Llegando','Saliendo'];
+/* Zonas del local. Por defecto estas; si el operador definió zonas
+   personalizadas para la sala en el panel, se sustituyen al arrancar. */
+let ZONES = ['Barra','Pista','Terraza / Fumadores','Reservado','Baños','Llegando','Saliendo'];
 
 /* Mapeo para la afinidad cruzada entre las preguntas 7 y 8.
    "Lo que te gusta" (Q7) debe coincidir con "lo que el otro hace" (Q8). */
@@ -2413,6 +2436,8 @@ function norm(s){ return (s||'').toString().toLowerCase().normalize('NFD').repla
 function uid(){ return 'u'+Math.random().toString(36).slice(2,9)+Date.now().toString(36); }
 function colorFor(id){ let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))>>>0; return ['#ff2e8b','#ff8a2b','#27e0d6','#8b5cff','#ffd23f','#3ad17e'][h%6]; }
 function genderBg(g){ return g==='chica'?'var(--pink)':g==='chico'?'var(--blue)':'#8b5cff'; }
+/* Etiqueta visible del género: Mujer / Hombre / Otro (traducida si toca) */
+function genderLabel(g){ return g==='chica' ? tr('Mujer') : g==='chico' ? tr('Hombre') : g ? tr('Otro') : ''; }
 /* Fondo del avatar cuando hay foto: ahora con los colores de Afines (gradiente), no negro */
 function photoBg(){ return 'linear-gradient(105deg,#ff2e8b,#ff8a2b)'; }
 function avBg(u){ return u.photo ? photoBg() : genderBg(u.gender); }
@@ -2624,11 +2649,21 @@ async function requestNotifPerm(){
 }
 
 function showIosInstallHelp(){
+  // Dejamos el id de sesión en la URL: "Añadir a pantalla de inicio" guarda la
+  // URL actual, así la app instalada recupera este perfil (ver restoreFromSid)
+  // y NO hay que repetir el alta ni las preguntas.
+  try{
+    if(me && me.id){
+      const u = new URL(location.href);
+      u.searchParams.set('sid', me.id);
+      history.replaceState(null, '', u.pathname + '?' + u.searchParams.toString());
+    }
+  }catch(e){}
   // Cartelito sencillo con los pasos de instalación en iPhone
   const html = `Para recibir notificaciones en iPhone:<br><br>
     1. Toca <b>Compartir</b> (cuadrado con flecha) en Safari.<br>
     2. Pulsa <b>Añadir a pantalla de inicio</b>.<br>
-    3. Abre Afines desde la pantalla de inicio y vuelve a tocar <b>Activar</b>.`;
+    3. Abre Afines desde el icono nuevo: <b>tu perfil seguirá ahí</b> y solo tendrás que volver a tocar <b>Activar</b>.`;
   const el = document.createElement('div');
   el.id='iosInstallHelp';
   el.innerHTML = `<div class="iih-bg" onclick="this.parentNode.remove()"></div>
@@ -2788,26 +2823,80 @@ async function init(){
   registerSW();           // 🔔 registra el Service Worker (lo necesita Web Push)
   setupNotifRouting();    // 🎯 escucha clics en notificaciones
   await initSupabase();
-  // 🌍 En modo prueba se puede forzar inglés con ?lang=en
-  try{ if(new URL(location.href).searchParams.get('lang')==='en') APP_LANG='en'; }catch(e){}
+  // 🏠 Sin ?venue= → portal con la lista de fiestas abiertas ahora mismo
+  if(!HAS_VENUE){ showHubScreen(); return; }
   // 🔒 Validar la sala: solo se entra si el venue existe y está activo.
-  // Excepción: el modo prueba (sin ?venue=) siempre entra, para poder testear.
-  if(SB_READY && VENUE_NAME !== VENUE_FALLBACK){
+  if(SB_READY){
     let ok = true;
     try{
       const { data, error } = await sb.rpc('venue_exists', { p_code: PARTY_CODE });
       if(!error) ok = !!data;
     }catch(e){ /* si falla la comprobación, dejamos entrar para no bloquear por un fallo de red */ }
-    // 🌍 Idioma configurado para esta sala en el panel. Si falla, español.
+    // ⚙️ Configuración de la sala hecha desde el panel: idioma, título visible y zonas
     try{
-      const { data:vi } = await sb.from('party_venues').select('lang').eq('party_code', PARTY_CODE).maybeSingle();
-      if(vi && vi.lang==='en') APP_LANG='en';
+      let vi = null;
+      const r1 = await sb.from('party_venues').select('lang,display_name,zones').eq('party_code', PARTY_CODE).maybeSingle();
+      if(!r1.error) vi = r1.data;
+      if(vi===null){
+        // por si las columnas nuevas aún no existen en la base de datos
+        const r2 = await sb.from('party_venues').select('lang').eq('party_code', PARTY_CODE).maybeSingle();
+        if(!r2.error) vi = r2.data;
+      }
+      if(vi){
+        if(vi.lang==='en') APP_LANG='en';
+        if(vi.display_name && String(vi.display_name).trim()) VENUE_TITLE = String(vi.display_name).trim().slice(0,60);
+        if(Array.isArray(vi.zones)){
+          const zs = vi.zones.filter(z=>typeof z==='string' && z.trim()).map(z=>z.trim().slice(0,40));
+          if(zs.length) ZONES = zs;
+        }
+      }
     }catch(e){}
     applyLang();
     if(!ok){ showNoVenueScreen(); return; }
   }
   applyLang();
   await enterParty();
+}
+
+/* ════════ PORTAL SIN ?venue= : FIESTAS ABIERTAS AHORA ════════
+   afinesfiesta.com sin parámetros muestra las fiestas activas (party_venues,
+   active=true). Se refresca cada 10 s: si el operador abre o cierra una sala
+   desde el panel, la lista cambia sola. */
+let hubTimer = null;
+function showHubScreen(){
+  show('screen-hub');
+  loadHubParties();
+  if(hubTimer) clearInterval(hubTimer);
+  hubTimer = setInterval(loadHubParties, 10000);
+}
+async function loadHubParties(){
+  const cont = document.getElementById('hubList'); if(!cont) return;
+  let rows = null;
+  if(SB_READY){
+    try{
+      const r1 = await sb.from('party_venues').select('name,display_name,active').eq('active', true).order('name');
+      if(!r1.error) rows = r1.data || [];
+      if(rows===null){
+        // por si display_name aún no existe en la base de datos
+        const r2 = await sb.from('party_venues').select('name,active').eq('active', true).order('name');
+        if(!r2.error) rows = r2.data || [];
+      }
+    }catch(e){}
+  }
+  if(rows===null){
+    if(!cont.querySelector('.hub-party')) cont.innerHTML = '<div class="hub-loading">No se pudo cargar la lista. Reintentando…</div>';
+    return;
+  }
+  if(!rows.length){
+    cont.innerHTML = `<div class="hub-empty">Vaya… parece que no hay fiestas abiertas.<br>Si quieres más de Afines, estamos preparando algo grande…</div>
+      <a class="btn" style="display:block;text-decoration:none;text-align:center" href="https://clucasrequeni.github.io/afines/">Regístrate para entrar en sorteos y demás</a>`;
+    return;
+  }
+  cont.innerHTML = rows.map(v=>{
+    const title = (v.display_name && String(v.display_name).trim()) ? String(v.display_name).trim() : v.name;
+    const href = location.pathname + '?venue=' + encodeURIComponent(v.name);
+    return `<a class="hub-party" href="${esc(href)}">${esc(title)}<span class="hp-go">Entrar ›</span></a>`;
+  }).join('');
 }
 
 /* Pantalla cuando la sala del ?venue= no existe o está desactivada */
@@ -2985,11 +3074,14 @@ function runPendingNotifRoute(){
 }
 
 async function enterParty(){
-  document.getElementById('venueName').textContent = VENUE_NAME || 'tu fiesta';
+  document.getElementById('venueName').textContent = VENUE_TITLE || 'tu fiesta';
   if(PURGE_OLD_NIGHTS) await purgeOld();
   const raw = await Store.get('me', false);
   if(raw){ try{ me = JSON.parse(raw); }catch(e){ me=null; } }
   if(me && me.day!==TODAY){ me=null; await Store.del('me',false); }
+  // 📲 App instalada en iPhone abierta por primera vez: recuperamos el perfil
+  // creado en Safari gracias al ?sid= que se guardó antes de instalar.
+  if(!me) await restoreFromSid();
   if(me){
     me.reads = me.reads || {};
     // Migración: de un solo grupo (groupCode) a varios (groups[])
@@ -3010,6 +3102,28 @@ async function enterParty(){
   show('screen-welcome');
   updateWelcomeSocial();
   trackOnce('app_opened');   // 📊 hito: alguien abrió la app esta noche
+}
+
+/* Recupera el perfil de esta noche a partir del ?sid= de la URL (traspaso
+   Safari → app instalada en iPhone). Así no hay que repetir el alta. */
+async function restoreFromSid(){
+  if(!SB_READY) return;
+  let sid = null;
+  try{ sid = new URL(location.href).searchParams.get('sid'); }catch(e){}
+  if(!sid) return;
+  try{
+    const { data } = await sb.from('party_users')
+      .select('profile_id,name,age,gender,photo,zone,group_code,answers')
+      .eq('party_code', PARTY_CODE).eq('night', TODAY).eq('profile_id', sid)
+      .maybeSingle();
+    if(data && data.name){
+      me = { id:data.profile_id, name:data.name, age:data.age, gender:data.gender||'',
+             photo:data.photo||'', zone:data.zone||'', answers:data.answers||{},
+             reads:{}, groups:parseGroups(data.answers, data.group_code),
+             groupCode:data.group_code||'', day:TODAY, done:true };
+      saveMeLocal();
+    }
+  }catch(e){ console.warn('[sid restore]', e); }
 }
 
 /* Comprueba si mi perfil está en la lista de expulsados de esta noche */
@@ -3399,23 +3513,6 @@ async function goQuestions(){
   renderQ(); show('screen-questions');
 }
 
-/* SOLO PRUEBAS: marca el alta como hecha SIN rellenar respuestas por defecto */
-async function skipQuestionsTest(){
-  const n=(document.getElementById('inName').value||'').trim();
-  const a=parseInt(document.getElementById('inAge').value,10);
-  if(!(n.length>=2 && a>=18 && a<=99 && me && me.gender)){
-    toast('Pon nombre, edad (≥18) y género primero');
-    return;
-  }
-  me.name=n; me.age=a;
-  me.answers = me.answers || {};          // NO se rellenan respuestas falsas
-  me.done = true;
-  await publishMe();
-  setupRealtime();
-  openMatches();
-  toast('Modo prueba: sin respuestas');
-}
-
 /* ════════ PREGUNTAS + AUTOCOMPLETADO ════════ */
 function renderQ(){
   const q=questionSet[qIndex];
@@ -3473,7 +3570,8 @@ async function nextQ(){
   if(qIndex>=questionSet.length-1){
     me.done=true; await publishMe();
     trackOnce('profile_completed');   // 📊 hito: alta terminada
-    if(questionSet===CORE_QUESTIONS){ goFinishPhoto(); } else { openMatches(); }
+    // Si ya se hizo la foto al rellenar nombre y edad, no se vuelve a pedir
+    if(questionSet===CORE_QUESTIONS && !me.photo){ goFinishPhoto(); } else { openMatches(); }
     return;
   }
   qIndex++; renderQ();
@@ -3772,7 +3870,7 @@ function updatePresenceVisuals(){
     const sub = document.querySelector('#chatName [data-chat-sub]');
     if(sub){
       const on = onlineUsers.has(chatWith.id);
-      sub.innerHTML = on ? ('<span class="online-dot">'+tr('en línea')+'</span>') : (tr('en ') + esc(tr(VENUE_NAME||'tu fiesta')));
+      sub.innerHTML = on ? ('<span class="online-dot">'+tr('en línea')+'</span>') : (tr('en ') + esc(tr(VENUE_TITLE||'tu fiesta')));
     }
   }
 }
@@ -4178,7 +4276,7 @@ function renderGroupBubbleInner(m){
         <div class="av" style="background:${bg}">${av}</div>
         <div class="body">
           <div class="lbl">Perfil compartido</div>
-          <div class="nm">${esc(p.name||'Alguien')} · ${p.age||''}${p.gender?(' · '+esc(p.gender)):''}</div>
+          <div class="nm">${esc(p.name||'Alguien')} · ${p.age||''}${p.gender?(' · '+esc(genderLabel(p.gender))):''}</div>
           <div class="info">${live?'Toca para abrir chat':'Ya no está conectado'}</div>
         </div>
       </div>`;
@@ -4255,7 +4353,7 @@ function openSharePicker(){
     list.innerHTML = `<div class="empty" style="padding:30px 10px"><div class="e-ico">🕺</div><div>No hay nadie más conectado para compartir.</div></div>`;
   } else {
     list.innerHTML = candidates.map(u=>{
-      const info = (u.age?(u.age+' años'):'') + (u.gender?(' · '+esc(u.gender)):'') + ((u.groups||[]).length?' · en grupo':'');
+      const info = (u.age?(u.age+' años'):'') + (u.gender?(' · '+esc(genderLabel(u.gender))):'') + ((u.groups||[]).length?' · en grupo':'');
       return `<div class="sp-row" onclick='pickAndShare("${u.id}")'>
         ${avBox(u,'',false)}
         <div class="body"><div class="nm">${esc(u.name||'')}</div><div class="info">${info}</div></div>
@@ -4543,7 +4641,7 @@ function getQRImageURL(text){
    al MISMO local) y la fecha (para detectar QRs de noches pasadas). */
 function getPartyURL(){
   let url = getAppBaseURL() + '?d=' + TODAY;
-  if(VENUE_NAME && VENUE_NAME !== VENUE_FALLBACK){
+  if(VENUE_NAME){
     url += '&venue=' + encodeURIComponent(VENUE_NAME);
   }
   return url;
@@ -4554,10 +4652,10 @@ function getPartyURL(){
    copia el enlace al portapapeles como respaldo. */
 async function shareParty(){
   const url = getPartyURL();
-  const texto = tr('¡Únete a la fiesta en {V}! Escanea o entra aquí 👇').replace('{V}', VENUE_NAME||'Afines');
+  const texto = tr('¡Únete a la fiesta en {V}! Escanea o entra aquí 👇').replace('{V}', VENUE_TITLE||'Afines');
   if(navigator.share){
     try{
-      await navigator.share({ title:'Afines · '+(VENUE_NAME||tr('Fiesta')), text:texto, url });
+      await navigator.share({ title:'Afines · '+(VENUE_TITLE||tr('Fiesta')), text:texto, url });
       return;
     }catch(e){ if(e && e.name==='AbortError') return; }   // el usuario cerró el menú: no hacemos nada
   }
@@ -4610,7 +4708,7 @@ function renderFillRoom(visible){
     <div class="fill-card">
       <div class="fill-pulse"><span></span><span></span><span></span></div>
       <div class="fill-title">La gente está entrando…</div>
-      <div class="fill-sub">Ya sois <b>${visible}</b> en ${esc(VENUE_NAME||'la fiesta')}. Cuantos más, mejor: trae a quien tengas al lado.</div>
+      <div class="fill-sub">Ya sois <b>${visible}</b> en ${esc(VENUE_TITLE||'la fiesta')}. Cuantos más, mejor: trae a quien tengas al lado.</div>
       <div class="fill-qr" onclick="openLightbox('${qr}')"><img src="${qr}" alt="QR para invitar"></div>
       <div class="fill-hint">Que escaneen este QR para unirse a la sala</div>
       <button class="btn fill-btn" onclick="shareParty()">Compartir la fiesta</button>
@@ -4637,11 +4735,11 @@ async function refreshMatches(force){
 
   // Pintar nombre del sitio en el título "AFINES en …"
   const venueEl = document.getElementById('hdrVenue');
-  if(venueEl) venueEl.textContent = VENUE_NAME || 'tu fiesta';
+  if(venueEl) venueEl.textContent = VENUE_TITLE || 'tu fiesta';
 
   // El contador de cabecera es solo texto, lo refrescamos siempre (no parpadea)
   const visible = room.filter(u=>!isBlocked(u.id)).length + 1;
-  document.getElementById('roomMeta').innerHTML=`En <b>${esc(VENUE_NAME||'tu fiesta')}</b> · <b>${visible}</b> personas conectadas`;
+  document.getElementById('roomMeta').innerHTML=`En <b>${esc(VENUE_TITLE||'tu fiesta')}</b> · <b>${visible}</b> personas conectadas`;
 
   // 🎉 Sala con poca gente: en vez de una pantalla vacía que da mala sensación,
   // animamos a invitar y mostramos que la fiesta está arrancando.
@@ -4758,7 +4856,7 @@ function openChat(u){
   me.reads=me.reads||{}; me.reads[u.id]=Date.now(); saveMeLocal();
   showTyping(false);
   const isOnline = onlineUsers.has(u.id);
-  document.getElementById('chatName').innerHTML=`${esc(u.name)}<small data-chat-sub>${isOnline?'<span class="online-dot">en línea</span>':('en '+esc(VENUE_NAME||'tu fiesta'))}</small>`;
+  document.getElementById('chatName').innerHTML=`${esc(u.name)}<small data-chat-sub>${isOnline?'<span class="online-dot">en línea</span>':('en '+esc(VENUE_TITLE||'tu fiesta'))}</small>`;
   const av=document.getElementById('chatAv'); av.style.background = u.photo ? photoBg() : genderBg(u.gender);
   av.innerHTML=u.photo?`<img src="${thumbURL(u.photo)}" data-full="${esc(u.photo)}" onclick='openPhotoCard(${JSON.stringify(u.id)})' onerror="avImgFail(this)">`:esc((u.name||'?').charAt(0).toUpperCase());
   if(av.firstChild && av.firstChild.tagName==='IMG'){ av.setAttribute('data-ini', esc((u.name||'?').charAt(0).toUpperCase())); av.setAttribute('data-fbg', genderBg(u.gender)); }
@@ -5198,7 +5296,7 @@ Object.assign(window,{goConsent,goProfile,goQuestions,setGender,nextQ,prevQ,pick
   openMyProfile,closeMyProfile,saveMyProfile,setMyGender,zoomMyPhoto,
   openGroupScreen,closeGroupScreen,sendInvite,acceptCurrentInvite,rejectCurrentInvite,setActiveGroup,
   requestNotifPerm,dismissNotifBanner,toggleNotifs,
-  skipQuestionsTest,createMyGroup,cancelGroupName,confirmGroupName,setGroupTab,sendGroupMessage,shareToGroup,
+  createMyGroup,cancelGroupName,confirmGroupName,setGroupTab,sendGroupMessage,shareToGroup,
   toggleGroupChatMenu,groupMenuAddPeople,groupMenuSharePerfil,openSharePicker,closeSharePicker,pickAndShare,
   showCoincidences,closeCoincPopup,goToQuestionsFromProfile,
   openFilterPanel,closeFilterPanel,toggleFilter,clearFilters,applyFilters,
