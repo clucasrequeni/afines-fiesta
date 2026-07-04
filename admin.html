@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel Afines · Operador</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
   :root{
     --bg:#08060f; --panel:#120e20; --line:rgba(255,255,255,.08);
@@ -77,6 +78,29 @@
   .vlang:active{transform:scale(.95)}
   .vposter{font-size:.8rem;font-weight:700;padding:7px 12px;border-radius:9px;cursor:pointer;font-family:inherit;border:1px solid var(--violet);color:var(--violet);background:transparent}
   .vposter:active{transform:scale(.97)}
+  .vdelete{font-size:.9rem;font-weight:700;padding:7px 11px;border-radius:9px;cursor:pointer;font-family:inherit;border:1px solid rgba(255,84,112,.5);color:var(--red);background:transparent}
+  .vdelete:active{transform:scale(.97)}
+  .add-col{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+  .add-col input{margin:0}
+  .add-hint{font-size:.75rem;color:var(--muted);margin-top:4px}
+
+  /* Cartel: visor integrado (sin ventanas nuevas — funciona en el móvil) */
+  #posterOverlay{position:fixed;inset:0;z-index:60;background:rgba(8,6,15,.97);display:flex;flex-direction:column}
+  #posterOverlay.hidden{display:none}
+  .po-top{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px 10px}
+  .po-top .btn{margin:0}
+  .po-scroll{flex:1;overflow:auto;display:flex;justify-content:center;padding:0 12px 28px}
+  .po-scroll img{width:min(100%,520px);height:auto;border-radius:14px;align-self:flex-start;box-shadow:0 10px 50px rgba(0,0,0,.6)}
+  .po-loading{color:var(--muted);align-self:center}
+  #posterPrint{display:none}
+  @media print{
+    body>.wrap{display:none!important}
+    #posterOverlay{display:none!important}
+    #posterPrint{display:block!important}
+    #posterPrint img{width:100vw;height:auto}
+    @page{size:A4 portrait;margin:0}
+    body{padding:0}
+  }
 </style>
 </head>
 <body>
@@ -102,13 +126,18 @@
 
     <div class="add-box">
       <label>Crear una sala nueva</label>
-      <div class="add-row">
-        <input id="newVenueName" placeholder="Nombre del local (ej: Sala Apolo)" autocomplete="off">
-        <select id="newVenueLang" class="lang-sel" title="Idioma de la sala">
-          <option value="es" selected>🇪🇸 Español</option>
-          <option value="en">🇬🇧 English</option>
-        </select>
-        <button class="btn" onclick="createVenue()">Crear</button>
+      <div class="add-col">
+        <div class="add-row">
+          <input id="newVenueName" placeholder="Nombre para la URL (ej: Sala Apolo)" autocomplete="off">
+          <select id="newVenueLang" class="lang-sel" title="Idioma de la sala">
+            <option value="es" selected>🇪🇸 Español</option>
+            <option value="en">🇬🇧 English</option>
+          </select>
+        </div>
+        <input id="newVenueTitle" placeholder="Nombre de la fiesta en portada (opcional, ej: Noche Neón · Apolo)" autocomplete="off">
+        <input id="newVenueZones" placeholder="Zonas de la fiesta separadas por comas (vacío = zonas estándar)" autocomplete="off">
+        <div class="add-hint">Zonas estándar: Barra, Pista, Terraza / Fumadores, Reservado, Baños, Llegando, Saliendo</div>
+        <button class="btn" onclick="createVenue()">Crear sala</button>
       </div>
       <div class="err" id="createErr"></div>
     </div>
@@ -126,8 +155,8 @@
     <div class="sub" id="statsSub"></div>
 
     <div class="grid">
-      <div class="card pink"><div class="n" id="sChicas">–</div><div class="l">Chicas</div></div>
-      <div class="card blue"><div class="n" id="sChicos">–</div><div class="l">Chicos</div></div>
+      <div class="card pink"><div class="n" id="sChicas">–</div><div class="l">Mujeres</div></div>
+      <div class="card blue"><div class="n" id="sChicos">–</div><div class="l">Hombres</div></div>
       <div class="card violet"><div class="n" id="sOtros">–</div><div class="l">Otros</div></div>
       <div class="card cyan"><div class="n" id="sTotal">–</div><div class="l">Perfiles</div></div>
     </div>
@@ -145,6 +174,18 @@
     <div id="reports"><div class="empty">Sin reportes esta noche.</div></div>
   </div>
 </div>
+
+<!-- VISOR DEL CARTEL (integrado: funciona en el móvil, sin pop-ups) -->
+<div id="posterOverlay" class="hidden">
+  <div class="po-top">
+    <button class="btn btn-sm" onclick="sharePoster()">📤 Compartir</button>
+    <button class="btn btn-sm btn-ghost" onclick="downloadPoster()">⬇️ Descargar</button>
+    <button class="btn btn-sm btn-ghost" onclick="printPoster()">🖨 Imprimir</button>
+    <button class="btn btn-sm btn-ghost" onclick="closePoster()">✕ Cerrar</button>
+  </div>
+  <div class="po-scroll"><img id="posterImg" alt="Cartel de la fiesta"></div>
+</div>
+<div id="posterPrint"></div>
 
 <script>
 const SUPABASE_URL  = "https://nhnxpmjlmjmfyhnyupzh.supabase.co";
@@ -166,7 +207,7 @@ async function login(){
   const { data, error } = await sb.rpc('admin_list_venues', { p_admin_key: ADMIN_KEY });
   if(error){ err.textContent='No se pudo conectar. Revisa tu conexión.'; return; }
   if(data === null){ err.textContent='Clave incorrecta.'; return; }
-  await loadVenueLangs();
+  await loadVenueMeta();
   document.getElementById('gate').classList.add('hidden');
   showVenues(data);
 }
@@ -183,7 +224,7 @@ function logout(){
 async function refreshVenues(){
   const [{ data }] = await Promise.all([
     sb.rpc('admin_list_venues', { p_admin_key: ADMIN_KEY }),
-    loadVenueLangs()
+    loadVenueMeta()
   ]);
   showVenues(data||[]);
 }
@@ -198,35 +239,54 @@ function showVenues(list){
     return;
   }
   cont.innerHTML = list.map(v=>{
-    const lang = venueLangs[v.party_code] || 'es';
+    const m = venueMeta[v.party_code] || {};
+    const lang = m.lang || 'es';
+    const title = (m.title||'').trim();
     return `
     <div class="venue-card">
       <div class="vinfo" onclick='openVenue(${JSON.stringify(v.party_code)}, ${JSON.stringify(v.name)})'>
-        <div class="vn">${escapeHtml(v.name)}</div>
-        <div class="vc">Código: ${escapeHtml(v.party_code)} · enlace: ?venue=${encodeURIComponent(v.name)}</div>
+        <div class="vn">${escapeHtml(title || v.name)}</div>
+        <div class="vc">${title?('URL: '+escapeHtml(v.name)+' · '):''}Código: ${escapeHtml(v.party_code)} · enlace: ?venue=${encodeURIComponent(v.name)}</div>
       </div>
       <div class="vactions">
         <button class="vlang" title="Cambiar idioma de la sala"
           onclick='toggleVenueLang(${JSON.stringify(v.party_code)}, ${JSON.stringify(lang)})'>${lang==='en'?'🇬🇧 EN':'🇪🇸 ES'}</button>
-        <button class="vposter" onclick='openPoster(${JSON.stringify(v.name)}, ${JSON.stringify(lang)})'>🖼 Cartel</button>
+        <button class="vposter" onclick='openPoster(${JSON.stringify(v.party_code)}, ${JSON.stringify(v.name)})'>🖼 Cartel</button>
         <span class="vstate ${v.active?'on':'off'}">${v.active?'Abierta':'Cerrada'}</span>
         <button class="vtoggle ${v.active?'close':'open'}"
           onclick='setVenueActive(${JSON.stringify(v.party_code)}, ${v.active?'false':'true'})'>
           ${v.active?'Cerrar':'Abrir'}
         </button>
+        <button class="vdelete" title="Borrar sala definitivamente"
+          onclick='deleteVenue(${JSON.stringify(v.party_code)}, ${JSON.stringify(title || v.name)})'>🗑</button>
       </div>
     </div>
   `;}).join('');
 }
 
-/* ── Idiomas de las salas (columna lang de party_venues) ── */
-let venueLangs = {};
-async function loadVenueLangs(){
+/* ── Borrar una sala definitivamente (con doble confirmación) ── */
+async function deleteVenue(code, name){
+  if(!confirm(`¿Borrar la sala "${name}" definitivamente?\n\nSe eliminarán la sala y TODOS sus datos (perfiles, mensajes, likes, grupos, reportes…).\nEsta acción no se puede deshacer.`)) return;
+  if(!confirm(`Última confirmación: ¿borrar "${name}" para siempre?`)) return;
+  const { data, error } = await sb.rpc('admin_delete_venue', { p_admin_key: ADMIN_KEY, p_code: code });
+  if(error || data!=='OK'){ alert('No se pudo borrar la sala. ¿Has ejecutado el SQL de admin_delete_venue?'); return; }
+  refreshVenues();
+}
+
+/* ── Configuración de las salas: idioma, título visible y zonas ── */
+let venueMeta = {};
+async function loadVenueMeta(){
   try{
-    const { data } = await sb.from('party_venues').select('party_code,lang');
-    venueLangs = {};
-    (data||[]).forEach(r=>{ venueLangs[r.party_code] = r.lang || 'es'; });
-  }catch(e){ venueLangs = {}; }
+    let { data, error } = await sb.from('party_venues').select('party_code,name,lang,display_name,zones');
+    if(error){
+      // por si las columnas nuevas aún no existen en la base de datos
+      ({ data } = await sb.from('party_venues').select('party_code,name,lang'));
+    }
+    venueMeta = {};
+    (data||[]).forEach(r=>{
+      venueMeta[r.party_code] = { lang: r.lang || 'es', title: (r.display_name||'').trim(), name: r.name, zones: r.zones || null };
+    });
+  }catch(e){ venueMeta = {}; }
 }
 async function toggleVenueLang(code, current){
   const next = current==='en' ? 'es' : 'en';
@@ -237,58 +297,143 @@ async function toggleVenueLang(code, current){
   refreshVenues();
 }
 
-/* ── Cartel imprimible con QR ── */
+/* ── Cartel con QR: visor integrado (sin pop-ups), compartir e imprimir ── */
 function appBaseURL(){
   return location.origin + location.pathname.replace(/admin\.html.*$/,'');
 }
-function openPoster(name, lang){
+let posterCanvas = null;
+let posterMeta = { title:'', url:'' };
+
+async function openPoster(code, fallbackName){
+  const m = venueMeta[code] || {};
+  const name = m.name || fallbackName;                 // nombre de la URL (para el QR)
+  const title = (m.title||'').trim() || name;          // nombre visible en el cartel
+  const lang = m.lang || 'es';
+  const ov = document.getElementById('posterOverlay');
+  const img = document.getElementById('posterImg');
+  img.removeAttribute('src');
+  ov.classList.remove('hidden');
+  try{
+    posterCanvas = await buildPosterCanvas(name, title, lang);
+    posterMeta = { title, url: appBaseURL() + '?venue=' + encodeURIComponent(name) };
+    img.src = posterCanvas.toDataURL('image/png');
+  }catch(e){
+    console.warn('[cartel]', e);
+    ov.classList.add('hidden');
+    alert('No se pudo generar el cartel.');
+  }
+}
+function closePoster(){ document.getElementById('posterOverlay').classList.add('hidden'); }
+
+/* Dibuja el cartel en un canvas (A4 vertical, 1240×1754). Todo local:
+   el QR se genera en el navegador, así el PNG se puede compartir. */
+async function buildPosterCanvas(name, title, lang){
   const url = appBaseURL() + '?venue=' + encodeURIComponent(name);
-  const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=10&color=0a0814&bgcolor=ffffff&data=' + encodeURIComponent(url);
   const en = lang==='en';
   const T = en ? {
     headline:'Find whoever you want here',
     scan:'Scan & join · no downloads, no accounts',
-    tag:'What happens tonight stays tonight',
-    print:'🖨 Print'
+    tag:'What happens at this party stays at this party'
   } : {
     headline:'Encuentra a quien quieras aquí',
     scan:'Escanea y entra · sin descargas, sin cuentas',
-    tag:'Lo que pasa esta noche, se queda esta noche',
-    print:'🖨 Imprimir'
+    tag:'Lo que pasa en esta fiesta, se queda en esta fiesta'
   };
-  const w = window.open('', '_blank');
-  if(!w){ alert('El navegador bloqueó la ventana del cartel. Permite pop-ups.'); return; }
-  w.document.write(`<!DOCTYPE html>
-<html lang="${en?'en':'es'}"><head><meta charset="UTF-8">
-<title>Cartel · ${escapeHtml(name)}</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#08060f;color:#fdfcff;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-  .poster{width:min(100vw,760px);min-height:100vh;padding:64px 40px;display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;gap:26px;
-    background:radial-gradient(80% 50% at 50% 0%,rgba(139,92,255,.25),transparent 70%),radial-gradient(70% 40% at 50% 100%,rgba(255,46,139,.22),transparent 70%),#08060f}
-  .brand{font-size:1.3rem;font-weight:800;letter-spacing:.28em;color:#27e0d6}
-  .venue{font-size:1.4rem;font-weight:700;color:#9b91bb}
-  h1{font-size:3rem;line-height:1.12;font-weight:800;letter-spacing:-.02em;max-width:14ch;
-    background:linear-gradient(105deg,#ff2e8b,#8b5cff 55%,#27e0d6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-  .qrbox{background:#fff;padding:22px;border-radius:26px;box-shadow:0 0 70px rgba(139,92,255,.45)}
-  .qrbox img{width:min(58vw,340px);height:auto;display:block}
-  .scan{font-size:1.05rem;font-weight:700}
-  .tag{font-size:.9rem;color:#9b91bb}
-  .printbtn{position:fixed;top:14px;right:14px;padding:11px 18px;border:none;border-radius:12px;background:linear-gradient(105deg,#ff2e8b,#8b5cff);color:#fff;font-weight:700;font-size:.95rem;cursor:pointer}
-  @media print{ .printbtn{display:none} body{background:#08060f!important;-webkit-print-color-adjust:exact;print-color-adjust:exact} .poster{min-height:auto;height:100vh} }
-  @page{size:A4 portrait;margin:0}
-</style></head><body>
-<button class="printbtn" onclick="window.print()">${T.print}</button>
-<div class="poster">
-  <div class="brand">AFINES</div>
-  <div class="venue">${escapeHtml(name)}</div>
-  <h1>${T.headline}</h1>
-  <div class="qrbox"><img src="${qr}" alt="QR"></div>
-  <div class="scan">${T.scan}</div>
-  <div class="tag">${T.tag}</div>
-</div>
-</body></html>`);
-  w.document.close();
+  const W=1240, H=1754;
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const x=c.getContext('2d');
+  // Fondo con brillos
+  x.fillStyle='#08060f'; x.fillRect(0,0,W,H);
+  let g=x.createRadialGradient(W/2,0,0, W/2,0,H*0.62);
+  g.addColorStop(0,'rgba(139,92,255,.30)'); g.addColorStop(1,'rgba(139,92,255,0)');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  g=x.createRadialGradient(W/2,H,0, W/2,H,H*0.55);
+  g.addColorStop(0,'rgba(255,46,139,.26)'); g.addColorStop(1,'rgba(255,46,139,0)');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  x.textAlign='center'; x.textBaseline='alphabetic';
+  // Marca
+  x.fillStyle='#27e0d6'; x.font='800 46px system-ui,-apple-system,sans-serif';
+  x.fillText('A F I N E S', W/2, 168);
+  // Nombre de la fiesta (título de portada)
+  x.fillStyle='#9b91bb'; x.font='700 54px system-ui,-apple-system,sans-serif';
+  x.fillText(fitPosterText(x, title, W-160), W/2, 262);
+  // Titular con degradado (hasta 2 líneas)
+  const grad=x.createLinearGradient(W*0.14,0,W*0.86,0);
+  grad.addColorStop(0,'#ff2e8b'); grad.addColorStop(.55,'#8b5cff'); grad.addColorStop(1,'#27e0d6');
+  x.fillStyle=grad; x.font='800 92px system-ui,-apple-system,sans-serif';
+  const lines = wrapPosterText(x, T.headline, W-200);
+  let y=418;
+  for(const ln of lines){ x.fillText(ln, W/2, y); y+=106; }
+  // Caja blanca con el QR (generado localmente)
+  const qrData = await QRCode.toDataURL(url, { width:640, margin:1, color:{ dark:'#0a0814', light:'#ffffff' } });
+  const qrImg = await loadPosterImg(qrData);
+  const box=720, bx=(W-box)/2, by=y+34, pad=46;
+  x.save();
+  x.shadowColor='rgba(139,92,255,.55)'; x.shadowBlur=90;
+  roundedRect(x, bx, by, box, box, 52);
+  x.fillStyle='#ffffff'; x.fill();
+  x.restore();
+  x.drawImage(qrImg, bx+pad, by+pad, box-2*pad, box-2*pad);
+  // Textos inferiores
+  x.fillStyle='#fdfcff'; x.font='700 46px system-ui,-apple-system,sans-serif';
+  x.fillText(T.scan, W/2, by+box+112);
+  x.fillStyle='#9b91bb'; x.font='400 38px system-ui,-apple-system,sans-serif';
+  x.fillText(T.tag, W/2, by+box+184);
+  return c;
+}
+function roundedRect(x, px, py, w, h, r){
+  x.beginPath();
+  x.moveTo(px+r,py);
+  x.arcTo(px+w,py, px+w,py+h, r);
+  x.arcTo(px+w,py+h, px,py+h, r);
+  x.arcTo(px,py+h, px,py, r);
+  x.arcTo(px,py, px+w,py, r);
+  x.closePath();
+}
+function wrapPosterText(x, text, maxW){
+  const words = text.split(' '); const lines=[]; let cur='';
+  for(const w of words){
+    const t = cur ? cur+' '+w : w;
+    if(x.measureText(t).width <= maxW){ cur=t; } else { if(cur) lines.push(cur); cur=w; }
+  }
+  if(cur) lines.push(cur);
+  return lines.slice(0,2);
+}
+function fitPosterText(x, text, maxW){
+  let t = text;
+  while(t.length>4 && x.measureText(t).width > maxW){ t = t.slice(0,-2); }
+  return t===text ? t : (t.trim()+'…');
+}
+function loadPosterImg(srcUrl){
+  return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=srcUrl; });
+}
+
+/* Compartir el cartel como imagen (menú nativo del móvil). Respaldo: enlace. */
+async function sharePoster(){
+  if(!posterCanvas) return;
+  try{
+    const blob = await new Promise(r=>posterCanvas.toBlob(r,'image/png'));
+    const file = new File([blob], 'cartel-afines.png', { type:'image/png' });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      await navigator.share({ files:[file], title:'Cartel Afines · '+posterMeta.title });
+      return;
+    }
+  }catch(e){ if(e && e.name==='AbortError') return; }
+  try{ await navigator.share({ title:'Afines · '+posterMeta.title, url: posterMeta.url }); }
+  catch(e){ downloadPoster(); }
+}
+function downloadPoster(){
+  if(!posterCanvas) return;
+  const a=document.createElement('a');
+  a.download='cartel-afines.png';
+  a.href=posterCanvas.toDataURL('image/png');
+  a.click();
+}
+function printPoster(){
+  if(!posterCanvas) return;
+  const pp=document.getElementById('posterPrint');
+  pp.innerHTML='<img src="'+posterCanvas.toDataURL('image/png')+'" alt="Cartel">';
+  setTimeout(()=>window.print(), 150);
 }
 
 async function setVenueActive(code, makeActive){
@@ -304,10 +449,12 @@ async function setVenueActive(code, makeActive){
 }
 
 async function createVenue(){
-  const name = document.getElementById('newVenueName').value.trim();
+  const name  = document.getElementById('newVenueName').value.trim();
+  const title = document.getElementById('newVenueTitle').value.trim();
+  const zonesRaw = document.getElementById('newVenueZones').value;
   const err = document.getElementById('createErr');
   err.textContent='';
-  if(!name){ err.textContent='Escribe un nombre.'; return; }
+  if(!name){ err.textContent='Escribe un nombre para la URL.'; return; }
   const { data, error } = await sb.rpc('admin_create_venue', { p_admin_key: ADMIN_KEY, p_name: name });
   if(error || data==='CLAVE_INCORRECTA' || data==='NOMBRE_VACIO'){ err.textContent='No se pudo crear la sala.'; return; }
   const lang = document.getElementById('newVenueLang').value;
@@ -315,7 +462,21 @@ async function createVenue(){
     // data devuelve el código de la sala recién creada
     try{ await sb.rpc('admin_set_venue_lang', { p_admin_key: ADMIN_KEY, p_code: data, p_lang: 'en' }); }catch(e){}
   }
+  // Título de portada + zonas personalizadas (jsonb). Vacío = valores estándar.
+  const zones = zonesRaw.split(',').map(s=>s.trim()).filter(Boolean).slice(0,12);
+  if(title || zones.length){
+    try{
+      const { data:r } = await sb.rpc('admin_set_venue_meta', {
+        p_admin_key: ADMIN_KEY, p_code: data,
+        p_display_name: title || null,
+        p_zones: zones.length ? zones : null
+      });
+      if(r!=='OK') err.textContent='Sala creada, pero no se guardó título/zonas. ¿Has ejecutado el SQL de admin_set_venue_meta?';
+    }catch(e){ err.textContent='Sala creada, pero no se guardó título/zonas.'; }
+  }
   document.getElementById('newVenueName').value='';
+  document.getElementById('newVenueTitle').value='';
+  document.getElementById('newVenueZones').value='';
   refreshVenues();
 }
 
