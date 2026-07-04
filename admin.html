@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Afines · Operador</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#08060f; --panel:#120e20; --line:rgba(255,255,255,.08);
+    --ink:#fdfcff; --muted:#9b91bb;
+    --pink:#ff2e8b; --blue:#3a8cff; --violet:#8b5cff; --cyan:#27e0d6;
+    --green:#3ad17e; --amber:#ffb23f; --red:#ff5470;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:20px 16px 60px}
+  .wrap{max-width:880px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px}
+  h1{font-size:1.4rem;font-weight:800;letter-spacing:-.02em}
+  h1 span{background:linear-gradient(105deg,var(--pink),var(--amber));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:.9rem;margin-bottom:22px}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--green);font-weight:600}
+  .live::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(58,209,126,.6);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(58,209,126,.5)}70%{box-shadow:0 0 0 8px rgba(58,209,126,0)}100%{box-shadow:0 0 0 0 rgba(58,209,126,0)}}
+
+  .gate{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;max-width:420px;margin:60px auto 0}
+  .gate h2{font-size:1.1rem;margin-bottom:6px}
+  .gate p{color:var(--muted);font-size:.88rem;margin-bottom:18px}
+  label{display:block;font-size:.78rem;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.05em}
+  input{width:100%;padding:13px 14px;background:#0c0918;border:1.5px solid var(--line);border-radius:12px;color:var(--ink);font-size:1rem;font-family:inherit}
+  input:focus{outline:none;border-color:var(--pink)}
+  .btn{margin-top:18px;padding:14px;border:none;border-radius:12px;background:linear-gradient(105deg,var(--pink),var(--violet));color:#fff;font-weight:700;font-size:1rem;cursor:pointer;width:100%}
+  .btn:active{transform:scale(.99)}
+  .btn-sm{width:auto;margin:0;padding:9px 16px;font-size:.85rem;border-radius:10px}
+  .btn-ghost{background:#1a1530}
+  .err{color:var(--red);font-size:.85rem;margin-top:12px;min-height:1.2em}
+
+  .venues-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 14px;flex-wrap:wrap}
+  .venue-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:border-color .15s}
+  .venue-card:hover{border-color:var(--violet)}
+  .venue-card .vinfo{flex:1;cursor:pointer;min-width:0}
+  .venue-card .vn{font-size:1.05rem;font-weight:700}
+  .venue-card .vc{font-size:.78rem;color:var(--muted);margin-top:3px;word-break:break-all}
+  .venue-card .vactions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .venue-card .vstate{font-size:.72rem;padding:3px 9px;border-radius:20px;font-weight:600}
+  .vstate.on{background:rgba(58,209,126,.15);color:var(--green)}
+  .vstate.off{background:rgba(255,84,112,.12);color:var(--red)}
+  .vtoggle{font-size:.8rem;font-weight:700;padding:7px 14px;border-radius:9px;cursor:pointer;font-family:inherit;border:1px solid var(--line);background:transparent}
+  .vtoggle.close{border-color:var(--red);color:var(--red)}
+  .vtoggle.open{border-color:var(--green);color:var(--green)}
+  .vtoggle:active{transform:scale(.97)}
+  .add-box{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:16px 18px;margin-bottom:18px}
+  .add-row{display:flex;gap:10px;margin-top:10px}
+  .add-row input{margin:0}
+  .add-row .btn{margin:0;width:auto;white-space:nowrap}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .card .n{font-size:2rem;font-weight:800;line-height:1;letter-spacing:-.02em}
+  .card .l{font-size:.82rem;color:var(--muted);margin-top:7px}
+  .card.pink .n{color:var(--pink)} .card.blue .n{color:var(--blue)}
+  .card.violet .n{color:var(--violet)} .card.cyan .n{color:var(--cyan)}
+  .card.green .n{color:var(--green)} .card.amber .n{color:var(--amber)}
+
+  .section-t{font-size:.8rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:24px 0 10px;font-weight:700}
+  .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+  .bar-label{width:150px;font-size:.85rem;color:var(--muted);flex-shrink:0}
+  .bar-track{flex:1;height:24px;background:#0c0918;border-radius:8px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding:0 8px;font-size:.78rem;font-weight:700;color:#fff;min-width:24px;transition:width .6s ease}
+  .empty{color:var(--muted);font-size:.88rem;padding:18px;text-align:center;background:var(--panel);border:1px dashed var(--line);border-radius:12px}
+  .back-link{color:var(--cyan);font-size:.9rem;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:5px;margin-bottom:14px}
+  .foot{margin-top:30px;color:var(--muted);font-size:.78rem;text-align:center;line-height:1.6}
+  .hidden{display:none}
+  .lang-sel{padding:0 12px;background:#0c0918;border:1.5px solid var(--line);border-radius:12px;color:var(--ink);font-size:.95rem;font-family:inherit}
+  .lang-sel:focus{outline:none;border-color:var(--pink)}
+  .vlang{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(58,140,255,.14);color:var(--blue);cursor:pointer;border:none;font-family:inherit}
+  .vlang:active{transform:scale(.95)}
+  .vposter{font-size:.8rem;font-weight:700;padding:7px 12px;border-radius:9px;cursor:pointer;font-family:inherit;border:1px solid var(--violet);color:var(--violet);background:transparent}
+  .vposter:active{transform:scale(.97)}
+  .vdelete{font-size:.9rem;font-weight:700;padding:7px 11px;border-radius:9px;cursor:pointer;font-family:inherit;border:1px solid rgba(255,84,112,.5);color:var(--red);background:transparent}
+  .vdelete:active{transform:scale(.97)}
+  .add-col{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+  .add-col input{margin:0}
+  .add-hint{font-size:.75rem;color:var(--muted);margin-top:4px}
+
+  /* Cartel: visor integrado (sin ventanas nuevas — funciona en el móvil) */
+  #posterOverlay{position:fixed;inset:0;z-index:60;background:rgba(8,6,15,.97);display:flex;flex-direction:column}
+  #posterOverlay.hidden{display:none}
+  .po-top{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px 10px}
+  .po-top .btn{margin:0}
+  .po-scroll{flex:1;overflow:auto;display:flex;justify-content:center;padding:0 12px 28px}
+  .po-scroll img{width:min(100%,520px);height:auto;border-radius:14px;align-self:flex-start;box-shadow:0 10px 50px rgba(0,0,0,.6)}
+  .po-loading{color:var(--muted);align-self:center}
+  #posterPrint{display:none}
+  @media print{
+    body>.wrap{display:none!important}
+    #posterOverlay{display:none!important}
+    #posterPrint{display:block!important}
+    #posterPrint img{width:100vw;height:auto}
+    @page{size:A4 portrait;margin:0}
+    body{padding:0}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- LOGIN -->
+  <div id="gate" class="gate">
+    <h2>Panel de operador</h2>
+    <p>Introduce tu clave para gestionar y ver todas las salas.</p>
+    <label for="keyIn">Clave de operador</label>
+    <input id="keyIn" type="password" placeholder="••••••••" autocomplete="off">
+    <button class="btn" onclick="login()">Entrar</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <!-- LISTA DE SALAS -->
+  <div id="venuesView" class="hidden">
+    <header>
+      <h1><span>Afines</span> · tus salas</h1>
+      <button class="btn btn-sm btn-ghost" onclick="logout()">Cerrar sesión</button>
+    </header>
+    <div class="sub">Crea salas nuevas o entra en una para ver cómo va la noche.</div>
+
+    <div class="add-box">
+      <label>Crear una sala nueva</label>
+      <div class="add-col">
+        <div class="add-row">
+          <input id="newVenueName" placeholder="Nombre para la URL (ej: Sala Apolo)" autocomplete="off">
+          <select id="newVenueLang" class="lang-sel" title="Idioma de la sala">
+            <option value="es" selected>🇪🇸 Español</option>
+            <option value="en">🇬🇧 English</option>
+          </select>
+        </div>
+        <input id="newVenueTitle" placeholder="Nombre de la fiesta en portada (opcional, ej: Noche Neón · Apolo)" autocomplete="off">
+        <input id="newVenueZones" placeholder="Zonas de la fiesta separadas por comas (vacío = zonas estándar)" autocomplete="off">
+        <div class="add-hint">Zonas estándar: Barra, Pista, Terraza / Fumadores, Reservado, Baños, Llegando, Saliendo</div>
+        <button class="btn" onclick="createVenue()">Crear sala</button>
+      </div>
+      <div class="err" id="createErr"></div>
+    </div>
+
+    <div id="venuesList"></div>
+  </div>
+
+  <!-- STATS DE UNA SALA -->
+  <div id="statsView" class="hidden">
+    <span class="back-link" onclick="backToVenues()">‹ Volver a las salas</span>
+    <header>
+      <h1 id="statsTitle">Sala</h1>
+      <span class="live">En directo</span>
+    </header>
+    <div class="sub" id="statsSub"></div>
+
+    <div class="grid">
+      <div class="card pink"><div class="n" id="sChicas">–</div><div class="l">Mujeres</div></div>
+      <div class="card blue"><div class="n" id="sChicos">–</div><div class="l">Hombres</div></div>
+      <div class="card violet"><div class="n" id="sOtros">–</div><div class="l">Otros</div></div>
+      <div class="card cyan"><div class="n" id="sTotal">–</div><div class="l">Perfiles</div></div>
+    </div>
+    <div class="grid">
+      <div class="card green"><div class="n" id="sMsgs">–</div><div class="l">Mensajes</div></div>
+      <div class="card amber"><div class="n" id="sLikes">–</div><div class="l">Me gusta</div></div>
+      <div class="card pink"><div class="n" id="sMatches">–</div><div class="l">Matches</div></div>
+      <div class="card cyan"><div class="n" id="sFoto">–</div><div class="l">Con foto · media <span id="sEdad">–</span></div></div>
+    </div>
+
+    <div class="section-t">Embudo de la noche</div>
+    <div id="funnel"></div>
+
+    <div class="section-t">Reportes</div>
+    <div id="reports"><div class="empty">Sin reportes esta noche.</div></div>
+  </div>
+</div>
+
+<!-- VISOR DEL CARTEL (integrado: funciona en el móvil, sin pop-ups) -->
+<div id="posterOverlay" class="hidden">
+  <div class="po-top">
+    <button class="btn btn-sm" onclick="sharePoster()">📤 Compartir</button>
+    <button class="btn btn-sm btn-ghost" onclick="downloadPoster()">⬇️ Descargar</button>
+    <button class="btn btn-sm btn-ghost" onclick="printPoster()">🖨 Imprimir</button>
+    <button class="btn btn-sm btn-ghost" onclick="closePoster()">✕ Cerrar</button>
+  </div>
+  <div class="po-scroll"><img id="posterImg" alt="Cartel de la fiesta"></div>
+</div>
+<div id="posterPrint"></div>
+
+<script>
+const SUPABASE_URL  = "https://nhnxpmjlmjmfyhnyupzh.supabase.co";
+const SUPABASE_ANON = "sb_publishable_wBIfhp-WXHLAKB4oz-yPmg__UoEg5HY";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let ADMIN_KEY = "";
+let curVenue = null;   // {party_code, name}
+let timer = null;
+
+const TODAY = (()=>{ const d=new Date(); if(d.getHours()<17) d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); })();
+
+async function login(){
+  const key = document.getElementById('keyIn').value;
+  const err = document.getElementById('loginErr');
+  err.textContent='';
+  if(!key){ err.textContent='Escribe tu clave.'; return; }
+  ADMIN_KEY = key;
+  const { data, error } = await sb.rpc('admin_list_venues', { p_admin_key: ADMIN_KEY });
+  if(error){ err.textContent='No se pudo conectar. Revisa tu conexión.'; return; }
+  if(data === null){ err.textContent='Clave incorrecta.'; return; }
+  await loadVenueMeta();
+  document.getElementById('gate').classList.add('hidden');
+  showVenues(data);
+}
+
+function logout(){
+  if(timer) clearInterval(timer);
+  ADMIN_KEY=""; curVenue=null;
+  document.getElementById('venuesView').classList.add('hidden');
+  document.getElementById('statsView').classList.add('hidden');
+  document.getElementById('gate').classList.remove('hidden');
+  document.getElementById('keyIn').value="";
+}
+
+async function refreshVenues(){
+  const [{ data }] = await Promise.all([
+    sb.rpc('admin_list_venues', { p_admin_key: ADMIN_KEY }),
+    loadVenueMeta()
+  ]);
+  showVenues(data||[]);
+}
+
+function showVenues(list){
+  document.getElementById('statsView').classList.add('hidden');
+  document.getElementById('venuesView').classList.remove('hidden');
+  if(timer){ clearInterval(timer); timer=null; }
+  const cont = document.getElementById('venuesList');
+  if(!list || list.length===0){
+    cont.innerHTML = '<div class="empty">Aún no has creado ninguna sala. Crea la primera arriba.</div>';
+    return;
+  }
+  cont.innerHTML = list.map(v=>{
+    const m = venueMeta[v.party_code] || {};
+    const lang = m.lang || 'es';
+    const title = (m.title||'').trim();
+    return `
+    <div class="venue-card">
+      <div class="vinfo" onclick='openVenue(${JSON.stringify(v.party_code)}, ${JSON.stringify(v.name)})'>
+        <div class="vn">${escapeHtml(title || v.name)}</div>
+        <div class="vc">${title?('URL: '+escapeHtml(v.name)+' · '):''}Código: ${escapeHtml(v.party_code)} · enlace: ?venue=${encodeURIComponent(v.name)}</div>
+      </div>
+      <div class="vactions">
+        <button class="vlang" title="Cambiar idioma de la sala"
+          onclick='toggleVenueLang(${JSON.stringify(v.party_code)}, ${JSON.stringify(lang)})'>${lang==='en'?'🇬🇧 EN':'🇪🇸 ES'}</button>
+        <button class="vposter" onclick='openPoster(${JSON.stringify(v.party_code)}, ${JSON.stringify(v.name)})'>🖼 Cartel</button>
+        <span class="vstate ${v.active?'on':'off'}">${v.active?'Abierta':'Cerrada'}</span>
+        <button class="vtoggle ${v.active?'close':'open'}"
+          onclick='setVenueActive(${JSON.stringify(v.party_code)}, ${v.active?'false':'true'})'>
+          ${v.active?'Cerrar':'Abrir'}
+        </button>
+        <button class="vdelete" title="Borrar sala definitivamente"
+          onclick='deleteVenue(${JSON.stringify(v.party_code)}, ${JSON.stringify(title || v.name)})'>🗑</button>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+/* ── Borrar una sala definitivamente (con doble confirmación) ── */
+async function deleteVenue(code, name){
+  if(!confirm(`¿Borrar la sala "${name}" definitivamente?\n\nSe eliminarán la sala y TODOS sus datos (perfiles, mensajes, likes, grupos, reportes…).\nEsta acción no se puede deshacer.`)) return;
+  if(!confirm(`Última confirmación: ¿borrar "${name}" para siempre?`)) return;
+  const { data, error } = await sb.rpc('admin_delete_venue', { p_admin_key: ADMIN_KEY, p_code: code });
+  if(error || data!=='OK'){ alert('No se pudo borrar la sala. ¿Has ejecutado el SQL de admin_delete_venue?'); return; }
+  refreshVenues();
+}
+
+/* ── Configuración de las salas: idioma, título visible y zonas ── */
+let venueMeta = {};
+async function loadVenueMeta(){
+  try{
+    let { data, error } = await sb.from('party_venues').select('party_code,name,lang,display_name,zones');
+    if(error){
+      // por si las columnas nuevas aún no existen en la base de datos
+      ({ data } = await sb.from('party_venues').select('party_code,name,lang'));
+    }
+    venueMeta = {};
+    (data||[]).forEach(r=>{
+      venueMeta[r.party_code] = { lang: r.lang || 'es', title: (r.display_name||'').trim(), name: r.name, zones: r.zones || null };
+    });
+  }catch(e){ venueMeta = {}; }
+}
+async function toggleVenueLang(code, current){
+  const next = current==='en' ? 'es' : 'en';
+  const { data, error } = await sb.rpc('admin_set_venue_lang', {
+    p_admin_key: ADMIN_KEY, p_code: code, p_lang: next
+  });
+  if(error || data!=='OK'){ alert('No se pudo cambiar el idioma de la sala.'); return; }
+  refreshVenues();
+}
+
+/* ── Cartel con QR: visor integrado (sin pop-ups), compartir e imprimir ── */
+function appBaseURL(){
+  return location.origin + location.pathname.replace(/admin\.html.*$/,'');
+}
+let posterCanvas = null;
+let posterMeta = { title:'', url:'' };
+
+async function openPoster(code, fallbackName){
+  const m = venueMeta[code] || {};
+  const name = m.name || fallbackName;                 // nombre de la URL (para el QR)
+  const title = (m.title||'').trim() || name;          // nombre visible en el cartel
+  const lang = m.lang || 'es';
+  const ov = document.getElementById('posterOverlay');
+  const img = document.getElementById('posterImg');
+  img.removeAttribute('src');
+  ov.classList.remove('hidden');
+  try{
+    posterCanvas = await buildPosterCanvas(name, title, lang);
+    posterMeta = { title, url: appBaseURL() + '?venue=' + encodeURIComponent(name) };
+    img.src = posterCanvas.toDataURL('image/png');
+  }catch(e){
+    console.warn('[cartel]', e);
+    ov.classList.add('hidden');
+    alert('No se pudo generar el cartel.');
+  }
+}
+function closePoster(){ document.getElementById('posterOverlay').classList.add('hidden'); }
+
+/* Dibuja el cartel en un canvas (A4 vertical, 1240×1754). Todo local:
+   el QR se genera en el navegador, así el PNG se puede compartir. */
+async function buildPosterCanvas(name, title, lang){
+  const url = appBaseURL() + '?venue=' + encodeURIComponent(name);
+  const en = lang==='en';
+  const T = en ? {
+    headline:'Find whoever you want here',
+    scan:'Scan & join · no downloads, no accounts',
+    tag:'What happens at this party stays at this party'
+  } : {
+    headline:'Encuentra a quien quieras aquí',
+    scan:'Escanea y entra · sin descargas, sin cuentas',
+    tag:'Lo que pasa en esta fiesta, se queda en esta fiesta'
+  };
+  const W=1240, H=1754;
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const x=c.getContext('2d');
+  // Fondo con brillos
+  x.fillStyle='#08060f'; x.fillRect(0,0,W,H);
+  let g=x.createRadialGradient(W/2,0,0, W/2,0,H*0.62);
+  g.addColorStop(0,'rgba(139,92,255,.30)'); g.addColorStop(1,'rgba(139,92,255,0)');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  g=x.createRadialGradient(W/2,H,0, W/2,H,H*0.55);
+  g.addColorStop(0,'rgba(255,46,139,.26)'); g.addColorStop(1,'rgba(255,46,139,0)');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  x.textAlign='center'; x.textBaseline='alphabetic';
+  // Marca
+  x.fillStyle='#27e0d6'; x.font='800 46px system-ui,-apple-system,sans-serif';
+  x.fillText('A F I N E S', W/2, 168);
+  // Nombre de la fiesta (título de portada)
+  x.fillStyle='#9b91bb'; x.font='700 54px system-ui,-apple-system,sans-serif';
+  x.fillText(fitPosterText(x, title, W-160), W/2, 262);
+  // Titular con degradado (hasta 2 líneas)
+  const grad=x.createLinearGradient(W*0.14,0,W*0.86,0);
+  grad.addColorStop(0,'#ff2e8b'); grad.addColorStop(.55,'#8b5cff'); grad.addColorStop(1,'#27e0d6');
+  x.fillStyle=grad; x.font='800 92px system-ui,-apple-system,sans-serif';
+  const lines = wrapPosterText(x, T.headline, W-200);
+  let y=418;
+  for(const ln of lines){ x.fillText(ln, W/2, y); y+=106; }
+  // Caja blanca con el QR (generado localmente)
+  const qrData = await QRCode.toDataURL(url, { width:640, margin:1, color:{ dark:'#0a0814', light:'#ffffff' } });
+  const qrImg = await loadPosterImg(qrData);
+  const box=720, bx=(W-box)/2, by=y+34, pad=46;
+  x.save();
+  x.shadowColor='rgba(139,92,255,.55)'; x.shadowBlur=90;
+  roundedRect(x, bx, by, box, box, 52);
+  x.fillStyle='#ffffff'; x.fill();
+  x.restore();
+  x.drawImage(qrImg, bx+pad, by+pad, box-2*pad, box-2*pad);
+  // Textos inferiores
+  x.fillStyle='#fdfcff'; x.font='700 46px system-ui,-apple-system,sans-serif';
+  x.fillText(T.scan, W/2, by+box+112);
+  x.fillStyle='#9b91bb'; x.font='400 38px system-ui,-apple-system,sans-serif';
+  x.fillText(T.tag, W/2, by+box+184);
+  return c;
+}
+function roundedRect(x, px, py, w, h, r){
+  x.beginPath();
+  x.moveTo(px+r,py);
+  x.arcTo(px+w,py, px+w,py+h, r);
+  x.arcTo(px+w,py+h, px,py+h, r);
+  x.arcTo(px,py+h, px,py, r);
+  x.arcTo(px,py, px+w,py, r);
+  x.closePath();
+}
+function wrapPosterText(x, text, maxW){
+  const words = text.split(' '); const lines=[]; let cur='';
+  for(const w of words){
+    const t = cur ? cur+' '+w : w;
+    if(x.measureText(t).width <= maxW){ cur=t; } else { if(cur) lines.push(cur); cur=w; }
+  }
+  if(cur) lines.push(cur);
+  return lines.slice(0,2);
+}
+function fitPosterText(x, text, maxW){
+  let t = text;
+  while(t.length>4 && x.measureText(t).width > maxW){ t = t.slice(0,-2); }
+  return t===text ? t : (t.trim()+'…');
+}
+function loadPosterImg(srcUrl){
+  return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=srcUrl; });
+}
+
+/* Compartir el cartel como imagen (menú nativo del móvil). Respaldo: enlace. */
+async function sharePoster(){
+  if(!posterCanvas) return;
+  try{
+    const blob = await new Promise(r=>posterCanvas.toBlob(r,'image/png'));
+    const file = new File([blob], 'cartel-afines.png', { type:'image/png' });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      await navigator.share({ files:[file], title:'Cartel Afines · '+posterMeta.title });
+      return;
+    }
+  }catch(e){ if(e && e.name==='AbortError') return; }
+  try{ await navigator.share({ title:'Afines · '+posterMeta.title, url: posterMeta.url }); }
+  catch(e){ downloadPoster(); }
+}
+function downloadPoster(){
+  if(!posterCanvas) return;
+  const a=document.createElement('a');
+  a.download='cartel-afines.png';
+  a.href=posterCanvas.toDataURL('image/png');
+  a.click();
+}
+function printPoster(){
+  if(!posterCanvas) return;
+  const pp=document.getElementById('posterPrint');
+  pp.innerHTML='<img src="'+posterCanvas.toDataURL('image/png')+'" alt="Cartel">';
+  setTimeout(()=>window.print(), 150);
+}
+
+async function setVenueActive(code, makeActive){
+  const txt = makeActive ? 'abrir' : 'cerrar';
+  if(!confirm(`¿Seguro que quieres ${txt} esta sala?\n\n`+(makeActive
+      ? 'La gente podrá volver a entrar con su enlace.'
+      : 'Nadie podrá entrar: verán la pantalla de sala cerrada con el botón hacia Afines.'))) return;
+  const { data, error } = await sb.rpc('admin_set_venue_active', {
+    p_admin_key: ADMIN_KEY, p_code: code, p_active: makeActive
+  });
+  if(error || data==='CLAVE_INCORRECTA'){ alert('No se pudo cambiar el estado de la sala.'); return; }
+  refreshVenues();
+}
+
+async function createVenue(){
+  const name  = document.getElementById('newVenueName').value.trim();
+  const title = document.getElementById('newVenueTitle').value.trim();
+  const zonesRaw = document.getElementById('newVenueZones').value;
+  const err = document.getElementById('createErr');
+  err.textContent='';
+  if(!name){ err.textContent='Escribe un nombre para la URL.'; return; }
+  const { data, error } = await sb.rpc('admin_create_venue', { p_admin_key: ADMIN_KEY, p_name: name });
+  if(error || data==='CLAVE_INCORRECTA' || data==='NOMBRE_VACIO'){ err.textContent='No se pudo crear la sala.'; return; }
+  const lang = document.getElementById('newVenueLang').value;
+  if(lang==='en'){
+    // data devuelve el código de la sala recién creada
+    try{ await sb.rpc('admin_set_venue_lang', { p_admin_key: ADMIN_KEY, p_code: data, p_lang: 'en' }); }catch(e){}
+  }
+  // Título de portada + zonas personalizadas (jsonb). Vacío = valores estándar.
+  const zones = zonesRaw.split(',').map(s=>s.trim()).filter(Boolean).slice(0,12);
+  if(title || zones.length){
+    try{
+      const { data:r } = await sb.rpc('admin_set_venue_meta', {
+        p_admin_key: ADMIN_KEY, p_code: data,
+        p_display_name: title || null,
+        p_zones: zones.length ? zones : null
+      });
+      if(r!=='OK') err.textContent='Sala creada, pero no se guardó título/zonas. ¿Has ejecutado el SQL de admin_set_venue_meta?';
+    }catch(e){ err.textContent='Sala creada, pero no se guardó título/zonas.'; }
+  }
+  document.getElementById('newVenueName').value='';
+  document.getElementById('newVenueTitle').value='';
+  document.getElementById('newVenueZones').value='';
+  refreshVenues();
+}
+
+function openVenue(code, name){
+  curVenue = { party_code: code, name: name };
+  document.getElementById('venuesView').classList.add('hidden');
+  document.getElementById('statsView').classList.remove('hidden');
+  document.getElementById('statsTitle').textContent = name;
+  document.getElementById('statsSub').textContent = 'Código '+code+' · noche del '+TODAY;
+  loadStats();
+  if(timer) clearInterval(timer);
+  timer = setInterval(loadStats, 8000);
+}
+
+function backToVenues(){
+  if(timer){ clearInterval(timer); timer=null; }
+  curVenue=null;
+  refreshVenues();
+}
+
+function setN(id,v){ const el=document.getElementById(id); if(el) el.textContent=(v==null?'0':v); }
+
+async function loadStats(){
+  if(!curVenue) return;
+  const { data, error } = await sb.rpc('admin_venue_stats', {
+    p_admin_key: ADMIN_KEY, p_code: curVenue.party_code, p_night: TODAY
+  });
+  const d = (data && data[0]) || {};
+  setN('sChicas',d.chicas); setN('sChicos',d.chicos); setN('sOtros',d.otros);
+  setN('sTotal',d.total_perfiles); setN('sFoto',d.con_foto); setN('sEdad',d.edad_media||'–');
+  setN('sMsgs',d.mensajes); setN('sLikes',d.likes); setN('sMatches',d.matches);
+
+  const steps=[
+    {l:'Abrieron la app',v:+d.abrieron||0,c:'var(--cyan)'},
+    {l:'Perfil completado',v:+d.perfil_completado||0,c:'var(--violet)'},
+    {l:'Me gusta dados',v:+d.likes||0,c:'var(--pink)'},
+    {l:'Mensajes',v:+d.mensajes||0,c:'var(--blue)'},
+    {l:'Matches',v:+d.matches||0,c:'var(--green)'},
+  ];
+  const max=Math.max(1,...steps.map(s=>s.v));
+  document.getElementById('funnel').innerHTML = steps.map(s=>{
+    const pct=Math.round((s.v/max)*100);
+    return `<div class="bar-row"><div class="bar-label">${s.l}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct,6)}%;background:${s.c}">${s.v}</div></div></div>`;
+  }).join('');
+
+  loadReports();
+}
+
+async function loadReports(){
+  const { data, error } = await sb.rpc('admin_get_reports', {
+    p_admin_key: ADMIN_KEY, p_party_code: curVenue.party_code, p_night: TODAY
+  });
+  const cont=document.getElementById('reports');
+  if(error || !data || data.length===0){ cont.innerHTML='<div class="empty">Sin reportes esta noche.</div>'; return; }
+  cont.innerHTML = data.map(r=>{
+    const short=(r.to_id||'').slice(0,8);
+    return `<div class="venue-card" style="cursor:default">
+      <div><div class="vn" style="font-size:.95rem">${r.reportes} reporte${r.reportes>1?'s':''} · <code>${short}…</code></div>
+      <div class="vc">Motivo: ${escapeHtml(r.reason||'sin especificar')}</div></div>
+      <button class="btn btn-sm" style="background:transparent;border:1px solid var(--red);color:var(--red);margin:0" onclick='banUser("${r.to_id}",this)'>Expulsar</button>
+    </div>`;
+  }).join('');
+}
+
+async function banUser(profileId, btn){
+  if(!confirm('¿Expulsar a este usuario de la fiesta de esta noche?')) return;
+  btn.disabled=true; btn.textContent='Expulsando…';
+  const { data, error } = await sb.rpc('admin_ban_user', {
+    p_admin_key: ADMIN_KEY, p_party_code: curVenue.party_code, p_night: TODAY,
+    p_profile_id: profileId, p_reason: 'Expulsado desde el panel'
+  });
+  if(error || data!=='OK'){ btn.disabled=false; btn.textContent='Expulsar'; alert('No se pudo expulsar.'); return; }
+  btn.textContent='Expulsado ✓';
+  setTimeout(loadStats,600);
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+document.getElementById('keyIn').addEventListener('keydown',e=>{ if(e.key==='Enter') login(); });
+document.getElementById('newVenueName').addEventListener('keydown',e=>{ if(e.key==='Enter') createVenue(); });
+</script>
+</body>
+</html>
